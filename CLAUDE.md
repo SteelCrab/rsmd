@@ -13,10 +13,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
+**Note**: This project uses Rust nightly toolchain (specified in `rust-toolchain.toml`).
+
 ### Building
 ```bash
 cargo build          # Debug build
-cargo build --release  # Release build
+cargo build --release  # Optimized release build (LTO enabled)
 ```
 
 ### Running
@@ -72,13 +74,19 @@ On every push/PR to `main`:
 - Runs tests on Ubuntu and macOS
 - Runs `cargo clippy` (no warnings allowed)
 - Checks code formatting with `cargo fmt`
+- Performs security audit using RustSec
 
 ### Release
 On version tags (e.g., `v0.1.0`):
-- Builds optimized binaries for:
+- Builds optimized binaries with LTO for:
   - Linux (x86_64)
   - macOS (x86_64 and Apple Silicon)
-- Creates GitHub release with artifacts
+- Strips symbols for smaller binaries
+- Generates SHA256 checksums for each artifact
+- Creates GitHub release with:
+  - Binary archives (.tar.gz)
+  - Checksums (.sha256)
+  - Auto-generated release notes
 
 **To create a release:**
 ```bash
