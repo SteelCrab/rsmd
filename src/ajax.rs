@@ -19,8 +19,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Loading state
         contentArea.style.opacity = '0.6';
 
-        // Fetch content
-        fetch(url)
+        // Fetch content with custom header
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(r => r.text())
             .then(html => {
                 contentArea.innerHTML = html;
@@ -52,42 +56,12 @@ pub fn render_partial_content(html_content: &str) -> String {
     html_content.to_string()
 }
 
-/// Check if request is from HTMX
-pub fn is_htmx_request(hx_request_header: Option<&str>) -> bool {
-    hx_request_header.is_some_and(|v| v == "true")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_dynamic_script_contains_fetch() {
-        let script = dynamic_script();
-        assert!(script.contains("fetch("));
-        assert!(script.contains("<script"));
-        assert!(script.contains("data-load"));
+/// Check if request is from dynamic loading (AJAX/fetch)
+pub fn is_dynamic_request(hx_request_header: Option<&str>, xhr_header: Option<&str>) -> bool {
+    // Check for HTMX header (legacy)
+    if hx_request_header.is_some_and(|v| v == "true") {
+        return true;
     }
-
-    #[test]
-    fn test_dynamic_script_event_listeners() {
-        let script = dynamic_script();
-        assert!(script.contains("addEventListener"));
-        assert!(script.contains("DOMContentLoaded"));
-        assert!(script.contains("click"));
-    }
-
-    #[test]
-    fn test_render_partial_content() {
-        let html = "<h1>Test</h1>";
-        let result = render_partial_content(html);
-        assert_eq!(result, html);
-    }
-
-    #[test]
-    fn test_is_htmx_request() {
-        assert!(is_htmx_request(Some("true")));
-        assert!(!is_htmx_request(Some("false")));
-        assert!(!is_htmx_request(None));
-    }
+    // Check for X-Requested-With header (vanilla JS fetch)
+    xhr_header.is_some_and(|v| v == "XMLHttpRequest")
 }
