@@ -52,6 +52,11 @@ jobs:
       - name: Check formatting
         run: cargo fmt -- --check
 
+      - name: Security audit
+        uses: rustsec/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     name: Build
     needs: test

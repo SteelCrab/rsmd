@@ -52,9 +52,22 @@ jobs:
           tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
           mv ${{ matrix.asset_name }}.tar.gz ../../..
 
+      - name: Generate checksums
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
+          else
+            shasum -a 256 ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
+          fi
+
       - name: Upload release asset
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ matrix.asset_name }}.tar.gz
+          files: |
+            ${{ matrix.asset_name }}.tar.gz
+            ${{ matrix.asset_name }}.tar.gz.sha256
+          generate_release_notes: true
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
