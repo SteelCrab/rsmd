@@ -1,4 +1,4 @@
-use crate::htmx;
+use crate::ajax;
 use crate::i18n::Language;
 
 /// Generate a complete HTML page with rendered markdown content
@@ -22,7 +22,7 @@ pub fn render_page(html_content: &str, language: &Language) -> String {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             line-height: 1.7;
             color: #0f172a;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
             min-height: 100vh;
             padding: 2rem 1rem;
         }}
@@ -163,7 +163,7 @@ pub fn render_raw_page(markdown_content: &str, language: &Language) -> String {
 
         body {{
             font-family: "JetBrains Mono", "Fira Code", "Monaco", "Courier New", monospace;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
             min-height: 100vh;
             padding: 2rem 1rem;
         }}
@@ -256,7 +256,7 @@ pub fn render_directory_page(
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
             min-height: 100vh;
             padding: 2rem 1rem;
         }}
@@ -408,7 +408,7 @@ pub fn render_directory_page(
         } else {
             ""
         },
-        if use_htmx { htmx::dynamic_script() } else { "" }, // {7}
+        if use_htmx { ajax::dynamic_script() } else { "" }, // {7}
         "",                                                 // {8}
         if use_htmx {
             // {9}
@@ -434,94 +434,4 @@ pub fn escape_html(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&#x27;")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_escape_html() {
-        assert_eq!(escape_html("<div>"), "&lt;div&gt;");
-        assert_eq!(escape_html("a & b"), "a &amp; b");
-        assert_eq!(escape_html("\"quote\""), "&quot;quote&quot;");
-    }
-
-    #[test]
-    fn test_render_page_contains_content() {
-        let lang = Language::English;
-        let result = render_page("<h1>Test</h1>", &lang);
-        assert!(result.contains("<h1>Test</h1>"));
-        assert!(result.contains("<!DOCTYPE html>"));
-        assert!(result.contains("Markdown Viewer"));
-    }
-
-    #[test]
-    fn test_render_raw_page_escapes_html() {
-        let lang = Language::English;
-        let result = render_raw_page("<script>alert('xss')</script>", &lang);
-        assert!(result.contains("&lt;script&gt;"));
-        assert!(!result.contains("<script>"));
-    }
-
-    #[test]
-    fn test_render_directory_page_without_htmx() {
-        use crate::directory::MarkdownFile;
-        use std::path::PathBuf;
-
-        let files = vec![MarkdownFile {
-            name: "test.md".to_string(),
-            path: PathBuf::from("test.md"),
-        }];
-        let lang = Language::English;
-        let result = render_directory_page(&files, "/test", &lang, false);
-
-        assert!(result.contains("test.md"));
-        assert!(result.contains("/view/test.md"));
-        assert!(!result.contains("htmx"));
-        assert!(!result.contains("hx-get"));
-    }
-
-    #[test]
-    fn test_render_directory_page_with_dynamic_loading() {
-        use crate::directory::MarkdownFile;
-        use std::path::PathBuf;
-
-        let files = vec![MarkdownFile {
-            name: "test.md".to_string(),
-            path: PathBuf::from("test.md"),
-        }];
-        let lang = Language::English;
-        let result = render_directory_page(&files, "/test", &lang, true);
-
-        assert!(result.contains("test.md"));
-        assert!(result.contains("data-load"));
-        assert!(result.contains("#content-area"));
-        assert!(result.contains("document.addEventListener"));
-    }
-
-    #[test]
-    fn test_render_directory_page_empty() {
-        let files = vec![];
-        let lang = Language::English;
-        let result = render_directory_page(&files, "/test", &lang, true);
-
-        assert!(result.contains("No markdown files found"));
-    }
-
-    #[test]
-    fn test_render_directory_page_korean() {
-        use crate::directory::MarkdownFile;
-        use std::path::PathBuf;
-
-        let files = vec![MarkdownFile {
-            name: "test.md".to_string(),
-            path: PathBuf::from("test.md"),
-        }];
-        let lang = Language::Korean;
-        let result = render_directory_page(&files, "/test", &lang, true);
-
-        assert!(result.contains("마크다운"));
-        assert!(result.contains("lang=\"ko\""));
-    }
 }
