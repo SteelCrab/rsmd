@@ -3,7 +3,9 @@ use axum::{
     http::{Request, StatusCode},
 };
 use rsmd::{
-    directory::MarkdownFile, i18n::Language, server::{create_router, AppState},
+    directory::MarkdownFile,
+    i18n::Language,
+    server::{AppState, create_router},
 };
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -59,7 +61,10 @@ async fn test_dynamic_loading_with_xhr_header() {
     let mut cache = HashMap::new();
     cache.insert(
         "test.md".to_string(),
-        ("# Test Header\n\nTest content".to_string(), "<h1>Test Header</h1>\n<p>Test content</p>\n".to_string()),
+        (
+            "# Test Header\n\nTest content".to_string(),
+            "<h1>Test Header</h1>\n<p>Test content</p>\n".to_string(),
+        ),
     );
 
     let state = Arc::new(AppState::Directory {

@@ -1,10 +1,9 @@
 use axum::{
-    Router,
+    Json, Router,
     extract::{Path, State},
     http::HeaderMap,
     response::{Html, IntoResponse},
     routing::get,
-    Json,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -126,7 +125,9 @@ async fn serve_directory(State(state): State<Arc<AppState>>) -> impl IntoRespons
             files,
             language,
             ..
-        } => Html(html::render_directory_page(files, dir_path, language, true)),
+        } => Html(html::render_directory_page(
+            files, dir_path, language, false,
+        )),
         _ => Html("<h1>Error: Invalid mode</h1>".to_string()),
     }
 }
@@ -139,7 +140,9 @@ async fn serve_partial_content(
 ) -> impl IntoResponse {
     let is_dynamic = ajax::is_dynamic_request(
         headers.get("hx-request").and_then(|v| v.to_str().ok()),
-        headers.get("x-requested-with").and_then(|v| v.to_str().ok()),
+        headers
+            .get("x-requested-with")
+            .and_then(|v| v.to_str().ok()),
     );
 
     if !is_dynamic {

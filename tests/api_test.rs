@@ -4,7 +4,7 @@ use axum::{
 };
 use rsmd::{
     directory::MarkdownFile,
-    server::{create_router, AppState, FilesResponse, MarkdownResponse},
+    server::{AppState, FilesResponse, MarkdownResponse, create_router},
 };
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -91,7 +91,10 @@ async fn test_api_get_markdown_from_cache() {
     let mut cache = HashMap::new();
     cache.insert(
         "test.md".to_string(),
-        ("# Test Header\n\nContent".to_string(), "<h1>Test Header</h1>".to_string()),
+        (
+            "# Test Header\n\nContent".to_string(),
+            "<h1>Test Header</h1>".to_string(),
+        ),
     );
 
     let state = Arc::new(AppState::Directory {
