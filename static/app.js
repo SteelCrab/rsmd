@@ -39,9 +39,7 @@ async function loadFiles() {
 
         fileListEl.innerHTML = currentFiles.map(file => `
             <li>
-                <a href="#/${file}" class="file-link">
-                    ${escapeHtml(file)}
-                </a>
+                <a href="#/${file}" class="file-link">${escapeHtml(file)}</a>
             </li>
         `).join('');
 
