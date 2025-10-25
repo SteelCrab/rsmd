@@ -1,8 +1,8 @@
 use axum::{
+    Router,
     extract::State,
     response::{Html, IntoResponse},
     routing::get,
-    Router,
 };
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;

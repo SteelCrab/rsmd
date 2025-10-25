@@ -1,4 +1,4 @@
-use rsmd::{markdown::MarkdownParser, server, server::AppState, ServerConfig};
+use rsmd::{ServerConfig, markdown::MarkdownParser, server, server::AppState};
 use std::env;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
