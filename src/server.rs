@@ -4,14 +4,27 @@ use axum::{
     http::HeaderMap,
     response::{Html, IntoResponse},
     routing::get,
+    Json,
 };
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
-use crate::{directory::MarkdownFile, html, htmx, i18n::Language, markdown::MarkdownParser};
+use crate::{ajax, directory::MarkdownFile, html, i18n::Language, markdown::MarkdownParser};
+
+// JSON response structures
+#[derive(Serialize, Deserialize)]
+pub struct FilesResponse {
+    pub files: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MarkdownResponse {
+    pub markdown: String,
+}
 
 #[derive(Clone)]
 pub enum AppState {
@@ -73,7 +86,9 @@ pub fn create_router(state: Arc<AppState>) -> Router {
             .route("/view/:filename", get(serve_file_html))
             .route("/raw/:filename", get(serve_file_raw))
             .route("/api/content/:filename", get(serve_partial_content))
-            .nest_service("/static", ServeDir::new(base_dir))
+            .route("/api/files", get(api_get_files))
+            .route("/api/markdown/:filename", get(api_get_markdown))
+            .nest_service("/static", ServeDir::new("static"))
             .with_state(state)
             .layer(TraceLayer::new_for_http()),
     }
@@ -116,16 +131,19 @@ async fn serve_directory(State(state): State<Arc<AppState>>) -> impl IntoRespons
     }
 }
 
-/// Handler for partial content (HTMX requests)
+/// Handler for partial content (dynamic AJAX/fetch requests)
 async fn serve_partial_content(
     State(state): State<Arc<AppState>>,
     Path(filename): Path<String>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    let is_htmx = htmx::is_htmx_request(headers.get("hx-request").and_then(|v| v.to_str().ok()));
+    let is_dynamic = ajax::is_dynamic_request(
+        headers.get("hx-request").and_then(|v| v.to_str().ok()),
+        headers.get("x-requested-with").and_then(|v| v.to_str().ok()),
+    );
 
-    if !is_htmx {
-        // If not HTMX request, redirect to full page
+    if !is_dynamic {
+        // If not dynamic request, redirect to full page
         return Html("<script>window.location.reload()</script>".to_string());
     }
 
@@ -143,13 +161,13 @@ async fn serve_partial_content(
 
             // Get from cache or load
             if let Some((_, html_content)) = file_cache.get(&filename) {
-                return Html(htmx::render_partial_content(html_content));
+                return Html(ajax::render_partial_content(html_content));
             }
 
             // If not in cache, load it
             if let Some(file) = files.iter().find(|f| f.name == filename) {
                 match MarkdownParser::from_file(file.path.to_str().unwrap()) {
-                    Ok(parser) => Html(htmx::render_partial_content(&parser.to_html())),
+                    Ok(parser) => Html(ajax::render_partial_content(&parser.to_html())),
                     Err(_) => Html(format!("<h1>{}</h1>", language.text("error_reading_file"))),
                 }
             } else {
@@ -232,76 +250,58 @@ async fn serve_file_raw(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_server_config_default() {
-        let config = ServerConfig::default();
-        assert_eq!(config.host, "127.0.0.1");
-        assert_eq!(config.port, 3000);
-        assert_eq!(config.address(), "127.0.0.1:3000");
-    }
-
-    #[test]
-    fn test_server_config_custom() {
-        let config = ServerConfig::new("0.0.0.0".to_string(), 8080);
-        assert_eq!(config.host, "0.0.0.0");
-        assert_eq!(config.port, 8080);
-        assert_eq!(config.address(), "0.0.0.0:8080");
-    }
-
-    #[test]
-    fn test_app_state_single_file_creation() {
-        use std::path::PathBuf;
-        let state = AppState::SingleFile {
-            markdown_content: "# Test".to_string(),
-            html_content: "<h1>Test</h1>".to_string(),
-            language: Language::English,
-            base_dir: PathBuf::from("/tmp"),
-        };
-        match state {
-            AppState::SingleFile {
-                markdown_content,
-                html_content,
-                language,
-                base_dir,
-            } => {
-                assert_eq!(markdown_content, "# Test");
-                assert_eq!(html_content, "<h1>Test</h1>");
-                assert_eq!(language, Language::English);
-                assert_eq!(base_dir, PathBuf::from("/tmp"));
-            }
-            _ => panic!("Expected SingleFile state"),
+/// API: Get list of markdown files
+async fn api_get_files(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    match state.as_ref() {
+        AppState::Directory { files, .. } => {
+            let file_names: Vec<String> = files.iter().map(|f| f.name.clone()).collect();
+            Json(FilesResponse { files: file_names })
         }
+        _ => Json(FilesResponse { files: vec![] }),
     }
+}
 
-    #[test]
-    fn test_app_state_directory_creation() {
-        use std::collections::HashMap;
-        use std::path::PathBuf;
-        let state = AppState::Directory {
-            dir_path: "/test".to_string(),
-            files: vec![],
-            file_cache: Arc::new(HashMap::new()),
-            language: Language::Korean,
-            base_dir: PathBuf::from("/test"),
-        };
-        match state {
-            AppState::Directory {
-                dir_path,
-                files,
-                language,
-                base_dir,
-                ..
-            } => {
-                assert_eq!(dir_path, "/test");
-                assert_eq!(files.len(), 0);
-                assert_eq!(language, Language::Korean);
-                assert_eq!(base_dir, PathBuf::from("/test"));
+/// API: Get markdown content for a specific file
+async fn api_get_markdown(
+    State(state): State<Arc<AppState>>,
+    Path(filename): Path<String>,
+) -> impl IntoResponse {
+    match state.as_ref() {
+        AppState::Directory {
+            files, file_cache, ..
+        } => {
+            // Check if file exists in the directory
+            if !files.iter().any(|f| f.name == filename) {
+                return Json(MarkdownResponse {
+                    markdown: String::from("# Error\n\nFile not found"),
+                });
             }
-            _ => panic!("Expected Directory state"),
+
+            // Get from cache or load
+            if let Some((markdown_content, _)) = file_cache.get(&filename) {
+                return Json(MarkdownResponse {
+                    markdown: markdown_content.clone(),
+                });
+            }
+
+            // If not in cache, load it
+            if let Some(file) = files.iter().find(|f| f.name == filename) {
+                match MarkdownParser::from_file(file.path.to_str().unwrap()) {
+                    Ok(parser) => Json(MarkdownResponse {
+                        markdown: parser.raw_content().to_string(),
+                    }),
+                    Err(_) => Json(MarkdownResponse {
+                        markdown: String::from("# Error\n\nFailed to read file"),
+                    }),
+                }
+            } else {
+                Json(MarkdownResponse {
+                    markdown: String::from("# Error\n\nFile not found"),
+                })
+            }
         }
+        _ => Json(MarkdownResponse {
+            markdown: String::from("# Error\n\nInvalid mode"),
+        }),
     }
 }

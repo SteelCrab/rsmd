@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 id="page-title">📁 Markdown Viewer</h1>
+            <div class="directory-path" id="directory-info"></div>
+        </header>
+
+        <div class="layout-container">
+            <!-- File list sidebar -->
+            <aside id="file-list-container">
+                <div id="loading" class="loading">Loading files...</div>
+                <ul id="file-list" class="file-list"></ul>
+            </aside>
+
+            <!-- Content area -->
+            <main id="content-area" class="content-area">
+                <div class="empty-state">← Select a file to view</div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
