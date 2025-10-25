@@ -68,7 +68,7 @@ rsmd/
 ## CI/CD
 
 ### Continuous Integration
-On every push/PR to `master` or `main`:
+On every push/PR to `main`:
 - Runs tests on Ubuntu and macOS
 - Runs `cargo clippy` (no warnings allowed)
 - Checks code formatting with `cargo fmt`
