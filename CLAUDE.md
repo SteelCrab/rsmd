@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`rsmd` is a Rust-based Markdown file viewer designed to display `.md` files easily in a web browser. The project uses Rust edition 2024.
+`rsmd` is a Rust-based Markdown file viewer designed to display `.md` files easily in a web browser. The project uses Rust edition 2024 (requires nightly toolchain).
 
 ### Project Goals
 - Parse and render Markdown files
