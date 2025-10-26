@@ -371,6 +371,11 @@ fn test_readme_markdown_links_are_well_formed() {
     // Every [ should have a corresponding ]( pattern for links
     let open_brackets = content.matches('[').count();
     let link_starts = content.matches("](").count();
+
+    assert!(
+        open_brackets >= link_starts,
+        "Each markdown link should have a matching opening bracket"
+    );
     
     assert!(
         link_starts > 0,
@@ -393,8 +398,6 @@ fn test_readme_markdown_links_are_well_formed() {
     }
     
     assert!(check_passed, "Markdown links should be properly formed with closing parentheses");
-}
-    );
 }
 
 #[test]
@@ -520,8 +523,8 @@ fn test_cargo_toml_tower_version() {
     
     // Check for tower version (the change in this PR)
     assert!(
-        content.contains("tower = { version = \"0.4\""),
-        "tower should be version 0.4"
+        content.contains("tower = { version = \"0.5\""),
+        "tower should be version 0.5"
     );
 }
 
@@ -532,8 +535,8 @@ fn test_cargo_toml_tower_http_version() {
     
     // Check for tower-http version (the change in this PR)
     assert!(
-        content.contains("tower-http = { version = \"0.5\""),
-        "tower-http should be version 0.5"
+        content.contains("tower-http = { version = \"0.6\""),
+        "tower-http should be version 0.6"
     );
 }
 
