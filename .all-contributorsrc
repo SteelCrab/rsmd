@@ -5,7 +5,18 @@
   "imageSize": 100,
   "commit": false,
   "commitConvention": "angular",
-  "contributors": [],
+  "contributors": [
+    {
+      "login": "SteelCrab",
+      "name": "SteelCrab",
+      "avatar_url": "https://github.com/SteelCrab.png",
+      "profile": "https://github.com/SteelCrab",
+      "contributions": [
+        "code",
+        "infra"
+      ]
+    }
+  ],
   "contributorsSortAlphabetically": true,
   "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors-)",
   "contributorTemplate": "<a href=\"<%= contributor.profile %>\"><img src=\"<%= contributor.avatar_url %>\" width=\"<%= imageSize %>px;\" alt=\"<%= contributor.name %>\"/><br /><sub><b><%= contributor.name %></b></sub></a>",

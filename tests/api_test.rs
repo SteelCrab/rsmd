@@ -207,3 +207,47 @@ async fn test_api_get_markdown_from_file() {
     assert!(json.markdown.contains("# Real File"));
     assert!(json.markdown.contains("This is content"));
 }
+
+#[tokio::test]
+async fn test_api_get_markdown_read_error() {
+    use tempfile::tempdir;
+
+    let temp_dir = tempdir().unwrap();
+    let file_path = temp_dir.path().join("gone.md");
+    std::fs::write(&file_path, "# Gone\n\nNope").unwrap();
+
+    let state = Arc::new(AppState::Directory {
+        dir_path: temp_dir.path().to_str().unwrap().to_string(),
+        files: vec![MarkdownFile {
+            name: "gone.md".to_string(),
+            path: file_path.clone(),
+        }],
+        file_cache: Arc::new(HashMap::new()),
+        language: rsmd::i18n::Language::English,
+        base_dir: temp_dir.path().to_path_buf(),
+    });
+
+    // Remove file to trigger read error
+    std::fs::remove_file(file_path).unwrap();
+
+    let app = create_router(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/markdown/gone.md")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let json: MarkdownResponse = serde_json::from_slice(&body).unwrap();
+
+    assert!(json.markdown.contains("Failed to read file"));
+}
