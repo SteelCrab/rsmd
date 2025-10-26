@@ -1,7 +1,7 @@
 use rsmd::directory::scan_markdown_files;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
-use tempfile::{tempdir, NamedTempFile};
+use tempfile::{NamedTempFile, tempdir};
 
 #[test]
 fn test_scan_markdown_files() {
