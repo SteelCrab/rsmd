@@ -1,19 +1,22 @@
 name: All Contributors
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
   issue_comment:
     types: [created, edited]
 
 jobs:
   add-contributors:
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '@all-contributors') || github.event.pull_request
+    if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@all-contributors')
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Add contributors
         uses: akhilmhdh/contributors-readme-action@v2.3.11
