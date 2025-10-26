@@ -11,9 +11,9 @@ pub struct MarkdownFile {
 
 /// Scans a directory for markdown files
 pub fn scan_markdown_files(dir_path: &str) -> io::Result<Vec<MarkdownFile>> {
-    let path = Path::new(dir_path);
+    let base_path = Path::new(dir_path);
 
-    if !path.is_dir() {
+    if !base_path.is_dir() {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
             "Path is not a directory",
@@ -22,21 +22,31 @@ pub fn scan_markdown_files(dir_path: &str) -> io::Result<Vec<MarkdownFile>> {
 
     let mut md_files = Vec::new();
 
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
+    fn visit(base: &Path, current: &Path, acc: &mut Vec<MarkdownFile>) -> io::Result<()> {
+        for entry in fs::read_dir(current)? {
+            let entry = entry?;
+            let path = entry.path();
 
-        if path.is_file()
-            && let Some(ext) = path.extension()
-            && ext == "md"
-            && let Some(name) = path.file_name()
-        {
-            md_files.push(MarkdownFile {
-                name: name.to_string_lossy().to_string(),
-                path: path.clone(),
-            });
+            if path.is_dir() {
+                visit(base, &path, acc)?;
+            } else if path.is_file() && path.extension().map(|ext| ext == "md").unwrap_or(false) {
+                let relative_name = path
+                    .strip_prefix(base)
+                    .unwrap_or(&path)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+
+                acc.push(MarkdownFile {
+                    name: relative_name,
+                    path: path.clone(),
+                });
+            }
         }
+
+        Ok(())
     }
+
+    visit(base_path, base_path, &mut md_files)?;
 
     // Sort alphabetically
     md_files.sort_by(|a, b| a.name.cmp(&b.name));

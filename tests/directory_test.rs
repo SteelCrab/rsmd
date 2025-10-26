@@ -15,13 +15,20 @@ fn test_scan_markdown_files() {
     let mut file2 = File::create(dir_path.join("test2.md")).unwrap();
     writeln!(file2, "# Test 2").unwrap();
 
+    // Create nested directory with markdown file
+    let nested_dir = dir_path.join("nested");
+    std::fs::create_dir(&nested_dir).unwrap();
+    let mut nested_file = File::create(nested_dir.join("inner.md")).unwrap();
+    writeln!(nested_file, "# Nested").unwrap();
+
     // Create a non-markdown file
     File::create(dir_path.join("readme.txt")).unwrap();
 
     let result = scan_markdown_files(dir_path.to_str().unwrap()).unwrap();
-    assert_eq!(result.len(), 2);
+    assert_eq!(result.len(), 3);
     assert!(result.iter().any(|f| f.name == "test1.md"));
     assert!(result.iter().any(|f| f.name == "test2.md"));
+    assert!(result.iter().any(|f| f.name == "nested/inner.md"));
 }
 
 #[test]
