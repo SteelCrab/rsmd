@@ -1,7 +1,7 @@
 use rsmd::directory::scan_markdown_files;
 use std::fs::File;
-use std::io::Write;
-use tempfile::tempdir;
+use std::io::{ErrorKind, Write};
+use tempfile::{NamedTempFile, tempdir};
 
 #[test]
 fn test_scan_markdown_files() {
@@ -29,4 +29,11 @@ fn test_scan_empty_directory() {
     let temp_dir = tempdir().unwrap();
     let result = scan_markdown_files(temp_dir.path().to_str().unwrap()).unwrap();
     assert_eq!(result.len(), 0);
+}
+
+#[test]
+fn test_scan_non_directory_returns_error() {
+    let tempfile = NamedTempFile::new().unwrap();
+    let err = scan_markdown_files(tempfile.path().to_str().unwrap()).unwrap_err();
+    assert_eq!(err.kind(), ErrorKind::NotFound);
 }
