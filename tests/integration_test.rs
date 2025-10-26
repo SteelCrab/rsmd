@@ -182,6 +182,130 @@ async fn test_file_not_found() {
 }
 
 #[tokio::test]
+async fn test_raw_route_serves_markdown() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let test_file = temp_dir.path().join("article.md");
+    std::fs::write(&test_file, "# Article\n\nBody").unwrap();
+
+    let state = Arc::new(AppState::Directory {
+        dir_path: temp_dir.path().to_str().unwrap().to_string(),
+        files: vec![MarkdownFile {
+            name: "article.md".to_string(),
+            path: test_file.clone(),
+        }],
+        file_cache: Arc::new(HashMap::new()),
+        language: Language::English,
+        base_dir: temp_dir.path().to_path_buf(),
+    });
+
+    let app = create_router(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/raw/article.md")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(body_str.contains("# Article"));
+    assert!(body_str.contains("Body"));
+}
+
+#[tokio::test]
+async fn test_view_route_read_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let missing_path = temp_dir.path().join("broken.md");
+    std::fs::write(&missing_path, "# Broken").unwrap();
+
+    let state = Arc::new(AppState::Directory {
+        dir_path: temp_dir.path().to_str().unwrap().to_string(),
+        files: vec![MarkdownFile {
+            name: "broken.md".to_string(),
+            path: missing_path.clone(),
+        }],
+        file_cache: Arc::new(HashMap::new()),
+        language: Language::English,
+        base_dir: temp_dir.path().to_path_buf(),
+    });
+
+    // Remove the file to force a read error.
+    std::fs::remove_file(missing_path).unwrap();
+
+    let app = create_router(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/view/broken.md")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(body_str.contains("Error reading file"));
+}
+
+#[tokio::test]
+async fn test_partial_content_read_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let missing_path = temp_dir.path().join("missing.md");
+    std::fs::write(&missing_path, "# Missing\n\nBody").unwrap();
+
+    let state = Arc::new(AppState::Directory {
+        dir_path: temp_dir.path().to_str().unwrap().to_string(),
+        files: vec![MarkdownFile {
+            name: "missing.md".to_string(),
+            path: missing_path.clone(),
+        }],
+        file_cache: Arc::new(HashMap::new()),
+        language: Language::English,
+        base_dir: temp_dir.path().to_path_buf(),
+    });
+
+    std::fs::remove_file(missing_path).unwrap();
+
+    let app = create_router(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/content/missing.md")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(body_str.contains("Error reading file"));
+}
+
+#[tokio::test]
 async fn test_korean_language_support() {
     let temp_dir = tempfile::tempdir().unwrap();
 
