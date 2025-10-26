@@ -63,20 +63,25 @@ jobs:
         with:
           command: check advisories
 
-      - name: Install tarpaulin
-        if: matrix.os == 'ubuntu-latest'
-        run: cargo install cargo-tarpaulin --locked --force
+      - name: Install tarpaulin and llvm-cov
+        if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+        run: cargo install cargo-tarpaulin --locked --force && cargo install cargo-llvm-cov
 
-      - name: Generate coverage
-        if: matrix.os == 'ubuntu-latest'
-        run: cargo tarpaulin --verbose --all-features --workspace --timeout 300 --out Xml
+      - name: Generate coverage with tarpaulin
+        if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+        run: cargo tarpaulin --verbose --all-features --workspace --timeout 300 --out Xml --exclude-files tests/*
+
+      - name: Generate coverage with llvm-cov
+        if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
         uses: codecov/codecov-action@v3
         with:
-          files: ./cobertura.xml
+          files: ./cobertura.xml,./lcov.info
           fail_ci_if_error: false
+          verbose: true
 
   build:
     name: Build
@@ -97,6 +102,10 @@ jobs:
             target: aarch64-apple-darwin
             artifact_name: rsmd
             asset_name: rsmd-macos-aarch64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: rsmd.exe
+            asset_name: rsmd-windows-x86_64
     steps:
       - uses: actions/checkout@v4
 
@@ -110,14 +119,13 @@ jobs:
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: cargo install cross
 
-      - name: Build release
-        run: |
-          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            cross build --release --target ${{ matrix.target }}
-          else
-            cargo build --release --target ${{ matrix.target }}
-          fi
-        shell: bash
+      - name: Build release (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Build release (macOS and Windows)
+        if: matrix.target != 'aarch64-unknown-linux-gnu'
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
