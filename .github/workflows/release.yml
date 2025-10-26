@@ -19,6 +19,10 @@ jobs:
             target: x86_64-unknown-linux-gnu
             artifact_name: rsmd
             asset_name: rsmd-linux-x86_64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: rsmd
+            asset_name: rsmd-linux-aarch64
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: rsmd
@@ -27,32 +31,54 @@ jobs:
             target: aarch64-apple-darwin
             artifact_name: rsmd
             asset_name: rsmd-macos-aarch64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: rsmd.exe
+            asset_name: rsmd-windows-x86_64
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: stable
           targets: ${{ matrix.target }}
+
+      - name: Install Linux aarch64 dependencies
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
       - name: Build release
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Strip binary (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            aarch64-linux-gnu-strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          else
+            strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          fi
 
       - name: Strip binary (macOS)
         if: matrix.os == 'macos-latest'
         run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
 
-      - name: Create archive
+      - name: Create archive (tar.gz)
+        if: matrix.os != 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
           tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
           mv ${{ matrix.asset_name }}.tar.gz ../../..
 
-      - name: Generate checksums
+      - name: Create archive (zip)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path target/${{ matrix.target }}/release/${{ matrix.artifact_name }} -DestinationPath ${{ matrix.asset_name }}.zip
+
+      - name: Generate checksums (tar.gz)
+        if: matrix.os != 'windows-latest'
         run: |
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
             sha256sum ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
@@ -60,12 +86,33 @@ jobs:
             shasum -a 256 ${{ matrix.asset_name }}.tar.gz > ${{ matrix.asset_name }}.tar.gz.sha256
           fi
 
-      - name: Upload release asset
+      - name: Generate checksums (zip)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Path ${{ matrix.asset_name }}.zip -Algorithm SHA256).Hash
+          "${hash}  ${{ matrix.asset_name }}.zip" | Out-File -Encoding ascii ${{ matrix.asset_name }}.zip.sha256
+
+      - name: Upload tarball assets
+        if: matrix.os != 'windows-latest'
         uses: softprops/action-gh-release@v1
         with:
           files: |
             ${{ matrix.asset_name }}.tar.gz
             ${{ matrix.asset_name }}.tar.gz.sha256
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload zip assets
+        if: matrix.os == 'windows-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ matrix.asset_name }}.zip
+            ${{ matrix.asset_name }}.zip.sha256
           generate_release_notes: true
           draft: false
           prerelease: false
