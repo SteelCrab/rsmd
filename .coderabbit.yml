@@ -1,0 +1,27 @@
+version: 1
+
+pull_request:
+  review:
+    auto:
+      enabled: true
+      drafts: false
+    path_filters:
+      include:
+        - "src/**"
+        - "tests/**"
+        - "static/**"
+      exclude:
+        - "**/*.md"
+        - "ARCHITECTURE.md"
+        - "README.md"
+        - "AGENTS.md"
+    reviewers:
+      groups:
+        - name: coderabbit
+          reviewers:
+            - app
+          required: 1
+    summary:
+      enabled: true
+  commands:
+    rerun: "/coderabbit rerun"
