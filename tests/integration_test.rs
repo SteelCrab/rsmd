@@ -238,7 +238,6 @@ async fn test_view_route_read_error() {
         base_dir: temp_dir.path().to_path_buf(),
     });
 
-    // Remove the file to force a read error.
     std::fs::remove_file(missing_path).unwrap();
 
     let app = create_router(state);

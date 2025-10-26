@@ -48,9 +48,9 @@ fn test_from_file_reads_content() {
 
 #[test]
 fn test_from_file_missing_returns_error() {
-    let missing = NamedTempFile::new().expect("temp file");
-    let path = missing.path().to_path_buf();
-    drop(missing);
+    let tempfile = NamedTempFile::new().expect("temp file");
+    let path = tempfile.path().to_path_buf();
+    drop(tempfile);
 
     let result = MarkdownParser::from_file(path.to_str().expect("path utf8"));
     assert!(result.is_err());
