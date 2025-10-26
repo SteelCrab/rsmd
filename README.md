@@ -84,10 +84,19 @@ rsmd/
 ## CI/CD
 
 ### Continuous Integration
-Every push/PR runs:
-- Tests on Ubuntu and macOS
-- Clippy linting
-- Format checking
+Every push/PR to `main` runs automated checks:
+
+**Quality Checks**:
+- ✅ Tests on all platforms (Ubuntu, macOS, Windows)
+- ✅ Clippy linter with `-D warnings` (strict mode)
+- ✅ Code formatting check with `cargo fmt`
+- ✅ Security audit (RustSec and cargo-deny)
+- ✅ Code coverage (minimum 80% required)
+
+**Build Matrix**:
+- Linux x86_64 & ARM64
+- macOS ARM64 (Apple Silicon)
+- Windows x86_64
 
 ### Releases
 Create a release by pushing a version tag:
