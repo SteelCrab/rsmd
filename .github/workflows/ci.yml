@@ -155,15 +155,15 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install cross
-        if: matrix.use_cross == 'true'
+        if: matrix.use_cross == true
         run: cargo install cross --locked
 
       - name: Build release (cross)
-        if: matrix.use_cross == 'true'
+        if: matrix.use_cross == true
         run: cross build --release --target ${{ matrix.target }}
 
       - name: Build release (native)
-        if: matrix.use_cross != 'true'
+        if: matrix.use_cross != true
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Upload artifact
