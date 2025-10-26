@@ -1,3 +1,6 @@
 /target
 Cargo.lock
 test_docs/
+package.json
+package-lock.json
+node_modules/
