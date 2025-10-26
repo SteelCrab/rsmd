@@ -59,7 +59,7 @@ jobs:
 
       - name: Dependency policy check
         if: matrix.os == 'ubuntu-latest'
-        uses: EmbarkStudios/cargo-deny-action@v1
+        uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check advisories
 
