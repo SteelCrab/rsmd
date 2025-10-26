@@ -53,7 +53,7 @@ jobs:
         run: cargo fmt -- --check
 
       - name: Security audit
-        uses: rustsec/audit-check@v1
+        uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
