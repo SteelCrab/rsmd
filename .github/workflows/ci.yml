@@ -94,17 +94,9 @@ jobs:
             artifact_name: rsmd
             asset_name: rsmd-linux-aarch64
           - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: rsmd
-            asset_name: rsmd-macos-x86_64
-          - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: rsmd
             asset_name: rsmd-macos-aarch64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: rsmd.exe
-            asset_name: rsmd-windows-x86_64
     steps:
       - uses: actions/checkout@v4
 
@@ -114,12 +106,18 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.target }}
 
-      - name: Install Linux aarch64 dependencies
+      - name: Install cross (for ARM64 Linux)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+        run: cargo install cross
 
       - name: Build release
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+        shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
