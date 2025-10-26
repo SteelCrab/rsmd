@@ -108,6 +108,25 @@ git push origin v0.1.0
 
 This automatically builds and publishes binaries for all supported platforms.
 
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+Thanks goes to these wonderful people!
+
+To contribute, comment on an issue or PR with:
+```
+@all-contributors please add @username for <contribution type>
+```
+
+**Contribution types**: code, docs, bug, feature, design, infra, maintenance, test, etc.
+
 ## License
 
 MIT

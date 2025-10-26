@@ -1,0 +1,21 @@
+name: All Contributors
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  add-contributors:
+    runs-on: ubuntu-latest
+    if: contains(github.event.comment.body, '@all-contributors') || github.event.pull_request
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add contributors
+        uses: akhilmhdh/contributors-readme-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
