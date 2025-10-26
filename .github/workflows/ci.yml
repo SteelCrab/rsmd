@@ -57,6 +57,21 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install tarpaulin
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo install cargo-tarpaulin
+
+      - name: Generate coverage
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo tarpaulin --verbose --all-features --workspace --timeout 300 --out Xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./cobertura.xml
+          fail_ci_if_error: false
+
   build:
     name: Build
     needs: test
