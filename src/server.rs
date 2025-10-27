@@ -82,11 +82,11 @@ pub fn create_router(state: Arc<AppState>) -> Router {
             .layer(TraceLayer::new_for_http()),
         AppState::Directory { .. } => Router::new()
             .route("/", get(serve_directory))
-            .route("/view/:filename", get(serve_file_html))
-            .route("/raw/:filename", get(serve_file_raw))
-            .route("/api/content/:filename", get(serve_partial_content))
+            .route("/view/{filename}", get(serve_file_html))
+            .route("/raw/{filename}", get(serve_file_raw))
+            .route("/api/content/{filename}", get(serve_partial_content))
             .route("/api/files", get(api_get_files))
-            .route("/api/markdown/:filename", get(api_get_markdown))
+            .route("/api/markdown/{filename}", get(api_get_markdown))
             .nest_service("/static", ServeDir::new("static"))
             .with_state(state)
             .layer(TraceLayer::new_for_http()),
