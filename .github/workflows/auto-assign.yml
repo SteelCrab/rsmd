@@ -2,7 +2,8 @@ name: auto-assign
 on:
   pull_request:
     types: [opened, ready_for_review]
-
+permissions:
+    pull-requests: write
 jobs:
   add-reviewers:
     runs-on: ubuntu-latest
