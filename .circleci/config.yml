@@ -4,6 +4,7 @@ jobs:
   rust-ci:
     docker:
       - image: cimg/rust:1.85
+    resource_class: small
     steps:
       - checkout
 
