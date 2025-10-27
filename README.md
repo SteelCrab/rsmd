@@ -137,6 +137,10 @@ To contribute, comment on an issue or PR with:
 
 **Contribution types**: code, docs, bug, feature, design, infra, maintenance, test, etc.
 
+## Contributing
+
+We welcome PRs! Please read the [Contributing Guidelines](./CONTRIBUTING.md) to understand the branching workflow, required checks, and expectations before opening a pull request.
+
 ## License
 
 MIT
