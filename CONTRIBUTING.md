@@ -37,25 +37,9 @@ cargo clippy -- -D warnings
 cargo test --workspace
 ```
 
-If you modify directory handling or Markdown rendering, add or update tests in `tests/` to cover the new behaviour.
+If you modify directory handling or rendering logic, add or update tests in `tests/` to cover the new behaviour.
 
-## 3. Running the Application
-
-Serve a single Markdown file:
-
-```bash
-cargo run -- ./sample.md
-```
-
-Serve an entire directory (supports nested folders):
-
-```bash
-cargo run -- ./test_docs
-```
-
-The server listens on `http://127.0.0.1:3000`. Directory entries open dedicated pages instead of inline previews, so each document can be linked directly.
-
-## 4. Pull Request Checklist
+## 3. Pull Request Checklist
 
 - ✅ `cargo build`
 - ✅ `cargo fmt`
@@ -68,7 +52,7 @@ The server listens on `http://127.0.0.1:3000`. Directory entries open dedicated 
 
 Dependabot PRs automatically skip Codecov uploads to avoid token issues; manual PRs still require successful coverage uploads.
 
-## 5. Continuous Integration
+## 4. Continuous Integration
 
 GitHub Actions runs the following on every PR/push:
 
@@ -81,6 +65,6 @@ GitHub Actions runs the following on every PR/push:
 
 Keep CI green by running the same commands locally before pushing.
 
-## 6. Need Help?
+## 5. Need Help?
 
 Open a draft PR or start a GitHub Discussion if you want early feedback. Maintainers are happy to guide you through the process. Thanks again for helping improve rsmd! 🎉
