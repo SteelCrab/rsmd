@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  rust-ci:
+  lint:
     docker:
       - image: cimg/rust:1.85
     resource_class: medium
@@ -14,14 +14,18 @@ jobs:
             - cargo-v1-
 
       - run:
-          name: Install nightly toolchain and components
+          name: Install nightly components
           command: |
             rustup update nightly
             rustup component add rustfmt clippy --toolchain nightly
 
       - run:
-          name: Fetch dependencies
-          command: cargo fetch
+          name: Format check
+          command: cargo +nightly fmt --all -- --check
+
+      - run:
+          name: Clippy
+          command: cargo +nightly clippy --all-targets --all-features -- -D warnings
 
       - save_cache:
           key: cargo-v1-{{ arch }}-{{ checksum "Cargo.toml" }}
@@ -29,20 +33,37 @@ jobs:
             - /usr/local/cargo/registry
             - /usr/local/cargo/git
 
-      - run:
-          name: Check formatting
-          command: cargo fmt --all -- --check
+  tests:
+    docker:
+      - image: cimg/rust:1.85
+    resource_class: medium
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - cargo-v1-{{ arch }}-{{ checksum "Cargo.toml" }}
+            - cargo-v1-
 
       - run:
-          name: Run clippy
-          command: cargo clippy --all-targets --all-features -- -D warnings
+          name: Fetch dependencies
+          command: cargo fetch
 
       - run:
-          name: Run tests
-          command: cargo test --all-targets
+          name: Test suite
+          command: cargo test --all-targets -- --nocapture
+
+      - save_cache:
+          key: cargo-v1-{{ arch }}-{{ checksum "Cargo.toml" }}
+          paths:
+            - /usr/local/cargo/registry
+            - /usr/local/cargo/git
 
 workflows:
   version: 2
-  ci:
+  rust-ci:
     jobs:
-      - rust-ci
+      - lint
+      - tests:
+          requires:
+            - lint
