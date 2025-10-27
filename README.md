@@ -15,7 +15,7 @@ A fast, simple markdown file viewer that renders `.md` files in your web browser
 ### From Source
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/SteelCrab/rsmd.git
 cd rsmd
 cargo build --release
 ```
