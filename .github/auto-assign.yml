@@ -1,0 +1,8 @@
+addAssignees: true
+addReviewers: true
+
+assignees:
+  - SteelCrab
+
+reviewers:
+  - SteelCrab
