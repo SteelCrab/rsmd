@@ -1,15 +1,13 @@
-name: 'Auto Assign'
+name: auto-assign
 on:
-    issues:
-        types: [opened]
-    pull_request:
-        types: [opened]
+  pull_request:
+    types: [opened, ready_for_review]
 
 jobs:
-    auto-assign:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Assign user
-              uses: kentaro-m/auto-assign-action@v2.0.0
-              with: 
-                repo-token: ${{ secrets.GITHUB_TOKEN }}
+  add-reviewers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kentaro-m/auto-assign-action@v2.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/auto_assign.yml
