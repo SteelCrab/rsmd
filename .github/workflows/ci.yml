@@ -73,7 +73,7 @@ jobs:
 
       - name: Generate coverage with llvm-cov
         if: matrix.os == 'ubuntu-latest'
-        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info --ignore-filename-regex ".*\.md$" --fail-under-lines 80
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && (github.event_name != 'pull_request' || github.actor != 'dependabot[bot]')

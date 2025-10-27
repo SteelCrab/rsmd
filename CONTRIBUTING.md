@@ -37,7 +37,7 @@ cargo clippy -- -D warnings
 cargo test --workspace
 ```
 
-If you modify directory handling or rendering logic, add or update tests in `tests/` to cover the new behaviour.
+If you modify directory handling or rendering logic, add or update tests in `tests/` to cover the new behaviour. Local runs default to `http://127.0.0.1:3000`; tweak `ServerConfig` if you need a different host or port.
 
 ## 3. Pull Request Checklist
 
