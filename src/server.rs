@@ -125,9 +125,7 @@ async fn serve_directory(State(state): State<Arc<AppState>>) -> impl IntoRespons
             files,
             language,
             ..
-        } => Html(html::render_directory_page(
-            files, dir_path, language, false,
-        )),
+        } => Html(html::render_directory_page(files, dir_path, language, true)),
         _ => Html("<h1>Error: Invalid mode</h1>".to_string()),
     }
 }
