@@ -9,7 +9,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - cargo-v1-{{ arch }}-{{ checksum "Cargo.lock" }}
+            - cargo-v1-{{ arch }}-{{ checksum "Cargo.toml" }}
             - cargo-v1-
 
       - run:
@@ -23,7 +23,7 @@ jobs:
           command: cargo fetch
 
       - save_cache:
-          key: cargo-v1-{{ arch }}-{{ checksum "Cargo.lock" }}
+          key: cargo-v1-{{ arch }}-{{ checksum "Cargo.toml" }}
           paths:
             - /usr/local/cargo/registry
             - /usr/local/cargo/git
