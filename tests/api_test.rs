@@ -9,14 +9,15 @@ use rsmd::{
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tower::util::ServiceExt;
 
 #[tokio::test]
 async fn test_api_get_files_empty() {
     let state = Arc::new(AppState::Directory {
         dir_path: "/test".to_string(),
-        files: vec![],
-        file_cache: Arc::new(HashMap::new()),
+        files: Arc::new(RwLock::new(vec![])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: rsmd::i18n::Language::English,
         base_dir: PathBuf::from("/test"),
     });
@@ -47,7 +48,7 @@ async fn test_api_get_files_empty() {
 async fn test_api_get_files_with_data() {
     let state = Arc::new(AppState::Directory {
         dir_path: "/test".to_string(),
-        files: vec![
+        files: Arc::new(RwLock::new(vec![
             MarkdownFile {
                 name: "test1.md".to_string(),
                 path: PathBuf::from("/test/test1.md"),
@@ -56,8 +57,8 @@ async fn test_api_get_files_with_data() {
                 name: "test2.md".to_string(),
                 path: PathBuf::from("/test/test2.md"),
             },
-        ],
-        file_cache: Arc::new(HashMap::new()),
+        ])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: rsmd::i18n::Language::English,
         base_dir: PathBuf::from("/test"),
     });
@@ -99,11 +100,11 @@ async fn test_api_get_markdown_from_cache() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: "/test".to_string(),
-        files: vec![MarkdownFile {
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
             name: "test.md".to_string(),
             path: PathBuf::from("/test/test.md"),
-        }],
-        file_cache: Arc::new(cache),
+        }])),
+        file_cache: Arc::new(RwLock::new(cache)),
         language: rsmd::i18n::Language::English,
         base_dir: PathBuf::from("/test"),
     });
@@ -134,8 +135,8 @@ async fn test_api_get_markdown_from_cache() {
 async fn test_api_get_markdown_not_found() {
     let state = Arc::new(AppState::Directory {
         dir_path: "/test".to_string(),
-        files: vec![],
-        file_cache: Arc::new(HashMap::new()),
+        files: Arc::new(RwLock::new(vec![])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: rsmd::i18n::Language::English,
         base_dir: PathBuf::from("/test"),
     });
@@ -176,11 +177,11 @@ async fn test_api_get_markdown_from_file() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![MarkdownFile {
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
             name: "test.md".to_string(),
             path: test_file.clone(),
-        }],
-        file_cache: Arc::new(HashMap::new()),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: rsmd::i18n::Language::English,
         base_dir: temp_dir.path().to_path_buf(),
     });
@@ -218,11 +219,11 @@ async fn test_api_get_markdown_read_error() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![MarkdownFile {
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
             name: "gone.md".to_string(),
             path: file_path.clone(),
-        }],
-        file_cache: Arc::new(HashMap::new()),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: rsmd::i18n::Language::English,
         base_dir: temp_dir.path().to_path_buf(),
     });

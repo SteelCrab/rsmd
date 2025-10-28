@@ -40,6 +40,7 @@ fn test_render_directory_page_without_htmx() {
     assert!(result.contains("/view/test.md"));
     assert!(!result.contains("htmx"));
     assert!(!result.contains("hx-get"));
+    assert!(!result.contains("upload-panel"));
 }
 
 #[test]
@@ -55,6 +56,8 @@ fn test_render_directory_page_with_dynamic_loading() {
     assert!(result.contains("data-load"));
     assert!(result.contains("#content-area"));
     assert!(result.contains("document.addEventListener"));
+    assert!(result.contains("upload-panel"));
+    assert!(result.contains("upload-browse"));
 }
 
 #[test]

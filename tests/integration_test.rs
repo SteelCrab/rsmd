@@ -10,13 +10,14 @@ use rsmd::{
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tower::util::ServiceExt;
 
 #[tokio::test]
 async fn test_directory_page_renders() {
     let state = Arc::new(AppState::Directory {
         dir_path: "/test".to_string(),
-        files: vec![
+        files: Arc::new(RwLock::new(vec![
             MarkdownFile {
                 name: "test.md".to_string(),
                 path: PathBuf::from("/test/test.md"),
@@ -25,8 +26,8 @@ async fn test_directory_page_renders() {
                 name: "another.md".to_string(),
                 path: PathBuf::from("/test/another.md"),
             },
-        ],
-        file_cache: Arc::new(HashMap::new()),
+        ])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: Language::English,
         base_dir: PathBuf::from("/test"),
     });
@@ -69,11 +70,11 @@ async fn test_dynamic_loading_with_xhr_header() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![MarkdownFile {
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
             name: "test.md".to_string(),
             path: test_file.clone(),
-        }],
-        file_cache: Arc::new(cache),
+        }])),
+        file_cache: Arc::new(RwLock::new(cache)),
         language: Language::English,
         base_dir: temp_dir.path().to_path_buf(),
     });
@@ -112,11 +113,11 @@ async fn test_dynamic_loading_without_xhr_header() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![MarkdownFile {
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
             name: "test.md".to_string(),
             path: test_file.clone(),
-        }],
-        file_cache: Arc::new(HashMap::new()),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: Language::English,
         base_dir: temp_dir.path().to_path_buf(),
     });
@@ -151,8 +152,8 @@ async fn test_file_not_found() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![],
-        file_cache: Arc::new(HashMap::new()),
+        files: Arc::new(RwLock::new(vec![])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: Language::English,
         base_dir: temp_dir.path().to_path_buf(),
     });
@@ -189,11 +190,11 @@ async fn test_raw_route_serves_markdown() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![MarkdownFile {
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
             name: "article.md".to_string(),
             path: test_file.clone(),
-        }],
-        file_cache: Arc::new(HashMap::new()),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: Language::English,
         base_dir: temp_dir.path().to_path_buf(),
     });
@@ -229,11 +230,11 @@ async fn test_view_route_read_error() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![MarkdownFile {
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
             name: "broken.md".to_string(),
             path: missing_path.clone(),
-        }],
-        file_cache: Arc::new(HashMap::new()),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: Language::English,
         base_dir: temp_dir.path().to_path_buf(),
     });
@@ -270,11 +271,11 @@ async fn test_partial_content_read_error() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![MarkdownFile {
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
             name: "missing.md".to_string(),
             path: missing_path.clone(),
-        }],
-        file_cache: Arc::new(HashMap::new()),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: Language::English,
         base_dir: temp_dir.path().to_path_buf(),
     });
@@ -310,8 +311,8 @@ async fn test_korean_language_support() {
 
     let state = Arc::new(AppState::Directory {
         dir_path: temp_dir.path().to_str().unwrap().to_string(),
-        files: vec![],
-        file_cache: Arc::new(HashMap::new()),
+        files: Arc::new(RwLock::new(vec![])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: Language::Korean,
         base_dir: temp_dir.path().to_path_buf(),
     });
