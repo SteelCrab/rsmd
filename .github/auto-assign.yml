@@ -1,0 +1,13 @@
+addReviewers: true
+addAssignees: true
+
+reviewers:
+  - SteelCrab
+  - coderabbitai
+
+assignees:
+  - SteelCrab
+
+skipKeywords:
+  - WIP
+  - Draft
