@@ -2,6 +2,7 @@ use rsmd::{i18n::Language, server::AppState, server::ServerConfig};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[test]
 fn test_server_config_default() {
@@ -43,12 +44,12 @@ fn test_app_state_single_file_creation() {
     }
 }
 
-#[test]
-fn test_app_state_directory_creation() {
+#[tokio::test]
+async fn test_app_state_directory_creation() {
     let state = AppState::Directory {
         dir_path: "/test".to_string(),
-        files: vec![],
-        file_cache: Arc::new(HashMap::new()),
+        files: Arc::new(RwLock::new(vec![])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
         language: Language::Korean,
         base_dir: PathBuf::from("/test"),
     };
@@ -61,7 +62,7 @@ fn test_app_state_directory_creation() {
             ..
         } => {
             assert_eq!(dir_path, "/test");
-            assert_eq!(files.len(), 0);
+            assert_eq!(files.read().await.len(), 0);
             assert_eq!(language, Language::Korean);
             assert_eq!(base_dir, PathBuf::from("/test"));
         }

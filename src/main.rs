@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -62,8 +63,8 @@ async fn main() {
 
         Arc::new(AppState::Directory {
             dir_path: path.to_string(),
-            files,
-            file_cache: Arc::new(HashMap::new()),
+            files: Arc::new(RwLock::new(files)),
+            file_cache: Arc::new(RwLock::new(HashMap::new())),
             language: language.clone(),
             base_dir: path_obj.to_path_buf(),
         })
@@ -88,9 +89,10 @@ async fn main() {
             println!("   View raw:      http://{}/raw", addr);
         }
         AppState::Directory { files, .. } => {
+            let count = files.read().await.len();
             println!("🚀 Markdown directory viewer running at http://{}", addr);
             println!("   Directory listing: http://{}/", addr);
-            println!("   Found {} markdown file(s)", files.len());
+            println!("   Found {} markdown file(s)", count);
         }
     }
 

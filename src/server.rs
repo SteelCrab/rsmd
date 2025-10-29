@@ -1,14 +1,16 @@
 use axum::{
-    Json, Router,
-    extract::{Path, State},
-    http::HeaderMap,
+    Json, Router, body,
+    extract::{Path, Request, State},
+    http::{HeaderMap, StatusCode},
     response::{Html, IntoResponse},
-    routing::get,
+    routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::fs;
+use tokio::sync::RwLock;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
@@ -35,8 +37,8 @@ pub enum AppState {
     },
     Directory {
         dir_path: String,
-        files: Vec<MarkdownFile>,
-        file_cache: Arc<HashMap<String, (String, String)>>, // filename -> (markdown, html)
+        files: Arc<RwLock<Vec<MarkdownFile>>>,
+        file_cache: Arc<RwLock<HashMap<String, (String, String)>>>, // filename -> (markdown, html)
         language: Language,
         base_dir: PathBuf,
     },
@@ -87,6 +89,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
             .route("/api/content/{filename}", get(serve_partial_content))
             .route("/api/files", get(api_get_files))
             .route("/api/markdown/{filename}", get(api_get_markdown))
+            .route("/api/upload", post(handle_upload))
             .nest_service("/static", ServeDir::new("static"))
             .with_state(state)
             .layer(TraceLayer::new_for_http()),
@@ -125,7 +128,18 @@ async fn serve_directory(State(state): State<Arc<AppState>>) -> impl IntoRespons
             files,
             language,
             ..
-        } => Html(html::render_directory_page(files, dir_path, language, true)),
+        } => {
+            let current_files = {
+                let guard = files.read().await;
+                guard.clone()
+            };
+            Html(html::render_directory_page(
+                &current_files,
+                dir_path,
+                language,
+                true,
+            ))
+        }
         _ => Html("<h1>Error: Invalid mode</h1>".to_string()),
     }
 }
@@ -155,20 +169,33 @@ async fn serve_partial_content(
             language,
             ..
         } => {
+            let files_snapshot = {
+                let guard = files.read().await;
+                guard.clone()
+            };
             // Check if file exists in the directory
-            if !files.iter().any(|f| f.name == filename) {
+            if !files_snapshot.iter().any(|f| f.name == filename) {
                 return Html(format!("<h1>{}</h1>", language.text("error_not_found")));
             }
 
             // Get from cache or load
-            if let Some((_, html_content)) = file_cache.get(&filename) {
-                return Html(ajax::render_partial_content(html_content));
+            if let Some((_, html_content)) = {
+                let cache = file_cache.read().await;
+                cache.get(&filename).cloned()
+            } {
+                return Html(ajax::render_partial_content(&html_content));
             }
 
             // If not in cache, load it
-            if let Some(file) = files.iter().find(|f| f.name == filename) {
+            if let Some(file) = files_snapshot.iter().find(|f| f.name == filename) {
                 match MarkdownParser::from_file(file.path.to_str().unwrap()) {
-                    Ok(parser) => Html(ajax::render_partial_content(&parser.to_html())),
+                    Ok(parser) => {
+                        let html_content = parser.to_html();
+                        let markdown_content = parser.raw_content().to_string();
+                        let mut cache = file_cache.write().await;
+                        cache.insert(filename.clone(), (markdown_content, html_content.clone()));
+                        Html(ajax::render_partial_content(&html_content))
+                    }
                     Err(_) => Html(format!("<h1>{}</h1>", language.text("error_reading_file"))),
                 }
             } else {
@@ -191,20 +218,33 @@ async fn serve_file_html(
             language,
             ..
         } => {
+            let files_snapshot = {
+                let guard = files.read().await;
+                guard.clone()
+            };
             // Check if file exists in the directory
-            if !files.iter().any(|f| f.name == filename) {
+            if !files_snapshot.iter().any(|f| f.name == filename) {
                 return Html(format!("<h1>{}</h1>", language.text("error_not_found")));
             }
 
             // Get from cache or load
-            if let Some((_, html_content)) = file_cache.get(&filename) {
-                return Html(html::render_page(html_content, language));
+            if let Some((_, html_content)) = {
+                let cache = file_cache.read().await;
+                cache.get(&filename).cloned()
+            } {
+                return Html(html::render_page(&html_content, language));
             }
 
             // If not in cache, load it
-            if let Some(file) = files.iter().find(|f| f.name == filename) {
+            if let Some(file) = files_snapshot.iter().find(|f| f.name == filename) {
                 match MarkdownParser::from_file(file.path.to_str().unwrap()) {
-                    Ok(parser) => Html(html::render_page(&parser.to_html(), language)),
+                    Ok(parser) => {
+                        let html_content = parser.to_html();
+                        let markdown_content = parser.raw_content().to_string();
+                        let mut cache = file_cache.write().await;
+                        cache.insert(filename.clone(), (markdown_content, html_content.clone()));
+                        Html(html::render_page(&html_content, language))
+                    }
                     Err(_) => Html(format!("<h1>{}</h1>", language.text("error_reading_file"))),
                 }
             } else {
@@ -227,20 +267,33 @@ async fn serve_file_raw(
             language,
             ..
         } => {
+            let files_snapshot = {
+                let guard = files.read().await;
+                guard.clone()
+            };
             // Check if file exists in the directory
-            if !files.iter().any(|f| f.name == filename) {
+            if !files_snapshot.iter().any(|f| f.name == filename) {
                 return Html(format!("<h1>{}</h1>", language.text("error_not_found")));
             }
 
             // Get from cache or load
-            if let Some((markdown_content, _)) = file_cache.get(&filename) {
-                return Html(html::render_raw_page(markdown_content, language));
+            if let Some((markdown_content, _)) = {
+                let cache = file_cache.read().await;
+                cache.get(&filename).cloned()
+            } {
+                return Html(html::render_raw_page(&markdown_content, language));
             }
 
             // If not in cache, load it
-            if let Some(file) = files.iter().find(|f| f.name == filename) {
+            if let Some(file) = files_snapshot.iter().find(|f| f.name == filename) {
                 match MarkdownParser::from_file(file.path.to_str().unwrap()) {
-                    Ok(parser) => Html(html::render_raw_page(parser.raw_content(), language)),
+                    Ok(parser) => {
+                        let html_content = parser.to_html();
+                        let markdown_content = parser.raw_content().to_string();
+                        let mut cache = file_cache.write().await;
+                        cache.insert(filename.clone(), (markdown_content.clone(), html_content));
+                        Html(html::render_raw_page(markdown_content.as_str(), language))
+                    }
                     Err(_) => Html(format!("<h1>{}</h1>", language.text("error_reading_file"))),
                 }
             } else {
@@ -255,7 +308,10 @@ async fn serve_file_raw(
 async fn api_get_files(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     match state.as_ref() {
         AppState::Directory { files, .. } => {
-            let file_names: Vec<String> = files.iter().map(|f| f.name.clone()).collect();
+            let file_names: Vec<String> = {
+                let guard = files.read().await;
+                guard.iter().map(|f| f.name.clone()).collect()
+            };
             Json(FilesResponse { files: file_names })
         }
         _ => Json(FilesResponse { files: vec![] }),
@@ -271,26 +327,39 @@ async fn api_get_markdown(
         AppState::Directory {
             files, file_cache, ..
         } => {
+            let files_snapshot = {
+                let guard = files.read().await;
+                guard.clone()
+            };
             // Check if file exists in the directory
-            if !files.iter().any(|f| f.name == filename) {
+            if !files_snapshot.iter().any(|f| f.name == filename) {
                 return Json(MarkdownResponse {
                     markdown: String::from("# Error\n\nFile not found"),
                 });
             }
 
             // Get from cache or load
-            if let Some((markdown_content, _)) = file_cache.get(&filename) {
+            if let Some((markdown_content, _)) = {
+                let cache = file_cache.read().await;
+                cache.get(&filename).cloned()
+            } {
                 return Json(MarkdownResponse {
                     markdown: markdown_content.clone(),
                 });
             }
 
             // If not in cache, load it
-            if let Some(file) = files.iter().find(|f| f.name == filename) {
+            if let Some(file) = files_snapshot.iter().find(|f| f.name == filename) {
                 match MarkdownParser::from_file(file.path.to_str().unwrap()) {
-                    Ok(parser) => Json(MarkdownResponse {
-                        markdown: parser.raw_content().to_string(),
-                    }),
+                    Ok(parser) => {
+                        let html_content = parser.to_html();
+                        let markdown_content = parser.raw_content().to_string();
+                        let mut cache = file_cache.write().await;
+                        cache.insert(filename.clone(), (markdown_content.clone(), html_content));
+                        Json(MarkdownResponse {
+                            markdown: markdown_content,
+                        })
+                    }
                     Err(_) => Json(MarkdownResponse {
                         markdown: String::from("# Error\n\nFailed to read file"),
                     }),
@@ -304,5 +373,159 @@ async fn api_get_markdown(
         _ => Json(MarkdownResponse {
             markdown: String::from("# Error\n\nInvalid mode"),
         }),
+    }
+}
+
+#[derive(Serialize)]
+struct UploadResponse {
+    success: bool,
+    message: String,
+    file: Option<String>,
+}
+
+const MAX_UPLOAD_SIZE: usize = 10 * 1024 * 1024;
+
+/// API: Upload a markdown file into the current directory
+async fn handle_upload(State(state): State<Arc<AppState>>, request: Request) -> impl IntoResponse {
+    match state.as_ref() {
+        AppState::Directory {
+            dir_path,
+            files,
+            file_cache,
+            language,
+            base_dir,
+        } => {
+            let (parts, body) = request.into_parts();
+            let Some(raw_name) = parts
+                .headers
+                .get("x-file-name")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.trim())
+                .filter(|v| !v.is_empty())
+            else {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(UploadResponse {
+                        success: false,
+                        message: language.text("upload_error").to_string(),
+                        file: None,
+                    }),
+                );
+            };
+
+            let sanitized = std::path::Path::new(raw_name)
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_default();
+
+            if sanitized.is_empty() {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(UploadResponse {
+                        success: false,
+                        message: language.text("upload_error").to_string(),
+                        file: None,
+                    }),
+                );
+            }
+
+            let lowered = sanitized.to_lowercase();
+            if !lowered.ends_with(".md") && !lowered.ends_with(".markdown") {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(UploadResponse {
+                        success: false,
+                        message: language.text("upload_invalid_type").to_string(),
+                        file: None,
+                    }),
+                );
+            }
+
+            let bytes = match body::to_bytes(body, MAX_UPLOAD_SIZE).await {
+                Ok(data) => data,
+                Err(err) => {
+                    tracing::error!(error = %err, "Failed to read upload body");
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(UploadResponse {
+                            success: false,
+                            message: language.text("upload_error").to_string(),
+                            file: None,
+                        }),
+                    );
+                }
+            };
+
+            if bytes.is_empty() {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(UploadResponse {
+                        success: false,
+                        message: language.text("upload_error").to_string(),
+                        file: None,
+                    }),
+                );
+            }
+
+            let file_name = sanitized;
+            let destination = base_dir.join(&file_name);
+
+            if let Err(err) = fs::write(&destination, bytes.as_ref()).await {
+                tracing::error!(
+                    error = %err,
+                    ?destination,
+                    "Failed to write uploaded markdown file",
+                );
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(UploadResponse {
+                        success: false,
+                        message: language.text("upload_error").to_string(),
+                        file: None,
+                    }),
+                );
+            }
+
+            {
+                let mut guard = files.write().await;
+                if let Some(existing) = guard.iter_mut().find(|f| f.name == file_name) {
+                    existing.path = destination.clone();
+                } else {
+                    guard.push(MarkdownFile {
+                        name: file_name.clone(),
+                        path: destination.clone(),
+                    });
+                }
+                guard.sort_by(|a, b| a.name.cmp(&b.name));
+            }
+
+            {
+                let mut cache = file_cache.write().await;
+                cache.remove(&file_name);
+            }
+
+            tracing::info!(
+                directory = %dir_path,
+                file = %file_name,
+                "Markdown file uploaded",
+            );
+
+            (
+                StatusCode::OK,
+                Json(UploadResponse {
+                    success: true,
+                    message: language.text("upload_success").to_string(),
+                    file: Some(file_name),
+                }),
+            )
+        }
+        _ => (
+            StatusCode::BAD_REQUEST,
+            Json(UploadResponse {
+                success: false,
+                message: "Uploads are only available in directory mode".to_string(),
+                file: None,
+            }),
+        ),
     }
 }

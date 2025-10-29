@@ -216,40 +216,231 @@ pub fn render_directory_page(
         Language::Korean => "ko",
     };
 
-    let file_list = if files.is_empty() {
-        format!("<p>{}</p>", language.text("no_files"))
+    let escaped_dir_path = escape_html(dir_path);
+    let directory_title = language.text("title_directory");
+    let directory_label = language.text("directory_label");
+    let directory_path_label = language.text("directory_path");
+    let empty_state_text = escape_html(language.text("no_files"));
+
+    let file_items: Vec<String> = files
+        .iter()
+        .map(|f| {
+            let display = escape_html(&f.name);
+            if use_htmx {
+                format!(
+                    r#"<li>
+                        <a href="/view/{display}" data-load="/api/content/{display}">
+                            {display}
+                        </a>
+                    </li>"#,
+                    display = display
+                )
+            } else {
+                format!(
+                    r#"<li><a href="/view/{display}">{display}</a></li>"#,
+                    display = display
+                )
+            }
+        })
+        .collect();
+
+    let file_list_markup = if use_htmx {
+        let upload_panel = format!(
+            r#"<div class="upload-panel" id="upload-area" data-success="{success}" data-error="{error}" data-invalid="{invalid}" data-uploading="{uploading}">
+    <div class="upload-header">📤 {title}</div>
+    <p class="upload-text">{instructions}</p>
+    <div class="upload-actions">
+        <button type="button" id="upload-browse">{browse}</button>
+        <input type="file" id="file-input" accept=".md,.markdown" hidden>
+    </div>
+    <div class="upload-status" id="upload-status"></div>
+</div>"#,
+            success = escape_html(language.text("upload_success")),
+            error = escape_html(language.text("upload_error")),
+            invalid = escape_html(language.text("upload_invalid_type")),
+            uploading = escape_html(language.text("upload_uploading")),
+            title = escape_html(language.text("upload_title")),
+            instructions = escape_html(language.text("upload_instructions")),
+            browse = escape_html(language.text("upload_browse")),
+        );
+
+        let empty_class = if file_items.is_empty() { "" } else { " hidden" };
+        let items_joined = if file_items.is_empty() {
+            String::new()
+        } else {
+            file_items.join("\n")
+        };
+
+        format!(
+            r#"<div class="layout-container">
+    <div>
+        {upload_panel}
+        <div class="file-browser">
+            <div class="empty-state{empty_class}" id="empty-state">{empty_text}</div>
+            <ul class="file-list">
+                {items}
+            </ul>
+        </div>
+    </div>
+    <div id="content-area"></div>
+</div>"#,
+            upload_panel = upload_panel,
+            empty_class = empty_class,
+            empty_text = empty_state_text,
+            items = items_joined,
+        )
+    } else if file_items.is_empty() {
+        format!(
+            r#"<div class="file-browser">
+    <div class="empty-state">{empty_text}</div>
+</div>"#,
+            empty_text = empty_state_text
+        )
     } else {
-        let items: Vec<String> = files
-            .iter()
-            .map(|f| {
-                if use_htmx {
-                    format!(
-                        r##"<li>
-                            <a href="/view/{0}" data-load="/api/content/{0}">
-                                {0}
-                            </a>
-                        </li>"##,
-                        escape_html(&f.name)
-                    )
-                } else {
-                    format!(
-                        r#"<li><a href="/view/{}">{}</a></li>"#,
-                        escape_html(&f.name),
-                        escape_html(&f.name)
-                    )
-                }
-            })
-            .collect();
-        format!("<ul class=\"file-list\">\n{}\n</ul>", items.join("\n"))
+        format!(
+            r#"<ul class="file-list">
+    {items}
+</ul>"#,
+            items = file_items.join("\n")
+        )
+    };
+
+    let layout_styles = if use_htmx {
+        r#"
+        .layout-container {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 1.5rem;
+        }
+
+        #content-area {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 2rem;
+            min-height: 400px;
+            transition: opacity 0.2s;
+        }
+
+        #content-area:empty::before {
+            content: "← Select a file";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .file-browser {
+            margin-top: 1.5rem;
+        }
+
+        .upload-panel {
+            border: 2px dashed #cbd5f5;
+            border-radius: 12px;
+            padding: 1.5rem;
+            background: #f8fafc;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+
+        .upload-panel.dragover {
+            border-color: #3b82f6;
+            background: #e0edff;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+        }
+
+        .upload-header {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-text {
+            color: #475569;
+            margin-bottom: 1rem;
+        }
+
+        .upload-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .upload-actions button {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .upload-actions button:hover {
+            background: #2563eb;
+        }
+
+        .upload-status {
+            margin-top: 1rem;
+            min-height: 1.25rem;
+            font-size: 0.9rem;
+        }
+
+        .upload-status.success {
+            color: #15803d;
+        }
+
+        .upload-status.error {
+            color: #b91c1c;
+        }
+
+        .upload-status.info {
+            color: #2563eb;
+        }
+
+        .file-list li.active {
+            border-color: #2563eb;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+        }
+
+        .empty-state {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px dashed #cbd5f5;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state.hidden {
+            display: none;
+        }
+
+        @media (max-width: 968px) {
+            .layout-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        "#
+    } else {
+        ""
+    };
+
+    let dynamic_script = if use_htmx {
+        ajax::dynamic_script().to_string()
+    } else {
+        String::new()
     };
 
     format!(
         r#"<!DOCTYPE html>
-<html lang="{}">
+<html lang="{lang_code}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{} - {}</title>
+    <title>{directory_title} - {escaped_dir_path}</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 
@@ -353,77 +544,42 @@ pub fn render_directory_page(
             transform: translateX(0);
         }}
 
-        {6}
+        .empty-state {{
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px dashed #cbd5f5;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 1rem;
+        }}
+
+        .empty-state.hidden {{
+            display: none;
+        }}
+
+        {layout_styles}
     </style>
-    {7}
-    {8}
+    {dynamic_script}
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📁 {3}</h1>
-            <div class="directory-path">{4}: <code>{5}</code></div>
+            <h1>📁 {directory_label}</h1>
+            <div class="directory-path">{directory_path_label}: <code>{escaped_dir_path}</code></div>
         </div>
-        {9}
+        {file_list_markup}
     </div>
 </body>
 </html>"#,
-        lang_code,                        // {0}
-        language.text("title_directory"), // {1}
-        escape_html(dir_path),            // {2}
-        language.text("directory_label"), // {3}
-        language.text("directory_path"),  // {4}
-        escape_html(dir_path),            // {5}
-        if use_htmx {
-            // {6}
-            r#"
-        .layout-container {{
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 1.5rem;
-        }}
-
-        #content-area {{
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 2rem;
-            min-height: 400px;
-            transition: opacity 0.2s;
-        }}
-
-        #content-area:empty::before {{
-            content: "← Select a file";
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #94a3b8;
-            font-style: italic;
-        }}
-
-        @media (max-width: 968px) {{
-            .layout-container {{ grid-template-columns: 1fr; }}
-        }}
-        "#
-        } else {
-            ""
-        },
-        if use_htmx { ajax::dynamic_script() } else { "" }, // {7}
-        "",                                                 // {8}
-        if use_htmx {
-            // {9}
-            format!(
-                r#"<div class="layout-container">
-            <div>
-                {}
-            </div>
-            <div id="content-area"></div>
-        </div>"#,
-                file_list
-            )
-        } else {
-            file_list.clone()
-        }
+        lang_code = lang_code,
+        directory_title = directory_title,
+        escaped_dir_path = escaped_dir_path,
+        layout_styles = layout_styles,
+        dynamic_script = dynamic_script,
+        directory_label = directory_label,
+        directory_path_label = directory_path_label,
+        file_list_markup = file_list_markup,
     )
 }
 
