@@ -223,6 +223,97 @@ async fn test_raw_route_serves_markdown() {
 }
 
 #[tokio::test]
+async fn test_view_route_serves_markdown() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let test_file = temp_dir.path().join("view.md");
+    std::fs::write(&test_file, "# View\n\nContent").unwrap();
+
+    let state = Arc::new(AppState::Directory {
+        dir_path: temp_dir.path().to_str().unwrap().to_string(),
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
+            name: "view.md".to_string(),
+            path: test_file.clone(),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: temp_dir.path().to_path_buf(),
+    });
+
+    let app = create_router(state.clone());
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/view/view.md")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(body_str.contains("View"));
+    assert!(body_str.contains("Content"));
+
+    if let AppState::Directory { file_cache, .. } = state.as_ref() {
+        let guard = file_cache.read().await;
+        assert!(guard.contains_key("view.md"));
+    }
+}
+
+#[tokio::test]
+async fn test_partial_content_loads_from_disk_and_caches() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let test_file = temp_dir.path().join("live.md");
+    std::fs::write(&test_file, "# Live\n\nCache me").unwrap();
+
+    let state = Arc::new(AppState::Directory {
+        dir_path: temp_dir.path().to_str().unwrap().to_string(),
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
+            name: "live.md".to_string(),
+            path: test_file.clone(),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: temp_dir.path().to_path_buf(),
+    });
+
+    let app = create_router(state.clone());
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/content/live.md")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(body_str.contains("Live"));
+    assert!(!body_str.contains("<!DOCTYPE html>"));
+
+    if let AppState::Directory { file_cache, .. } = state.as_ref() {
+        let guard = file_cache.read().await;
+        assert!(guard.contains_key("live.md"));
+    }
+}
+
+#[tokio::test]
 async fn test_view_route_read_error() {
     let temp_dir = tempfile::tempdir().unwrap();
     let missing_path = temp_dir.path().join("broken.md");

@@ -8,6 +8,7 @@ fn test_escape_html() {
     assert_eq!(escape_html("<div>"), "&lt;div&gt;");
     assert_eq!(escape_html("a & b"), "a &amp; b");
     assert_eq!(escape_html("\"quote\""), "&quot;quote&quot;");
+    assert_eq!(escape_html("rock 'n' roll"), "rock &#x27;n&#x27; roll");
 }
 
 #[test]
