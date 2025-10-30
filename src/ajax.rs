@@ -172,7 +172,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.addEventListener('click', (event) => {
-        const card = event.target.closest('.folder-card');
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+        const card = target.closest('.folder-card');
         if (!card || !directoryBody) return;
         const folderPath = card.dataset.path || '';
         directoryBody.setAttribute('data-current-path', folderPath);

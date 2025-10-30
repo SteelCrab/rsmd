@@ -6,9 +6,11 @@ addAssignees: author
 # Note: PR author cannot review their own PR
 reviewers:
   - SteelCrab
+  - coderabbitai
 
 # Number of reviewers to assign (optional, defaults to all)
-numberOfReviewers: 1
+# Set to 0 to assign all available reviewers
+numberOfReviewers: 0
 
 # Assign the PR author as assignee
 assignees:
