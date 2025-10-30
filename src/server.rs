@@ -14,7 +14,13 @@ use tokio::sync::RwLock;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
-use crate::{ajax, directory::MarkdownFile, html, i18n::Language, markdown::MarkdownParser};
+use crate::{
+    ajax,
+    directory::{self, MarkdownFile},
+    html,
+    i18n::Language,
+    markdown::MarkdownParser,
+};
 
 // JSON response structures
 #[derive(Serialize, Deserialize)]
@@ -84,11 +90,12 @@ pub fn create_router(state: Arc<AppState>) -> Router {
             .layer(TraceLayer::new_for_http()),
         AppState::Directory { .. } => Router::new()
             .route("/", get(serve_directory))
-            .route("/view/{filename}", get(serve_file_html))
-            .route("/raw/{filename}", get(serve_file_raw))
-            .route("/api/content/{filename}", get(serve_partial_content))
+            .route("/dir/{*path}", get(serve_directory_path))
+            .route("/view/{*filename}", get(serve_file_html))
+            .route("/raw/{*filename}", get(serve_file_raw))
+            .route("/api/content/{*filename}", get(serve_partial_content))
             .route("/api/files", get(api_get_files))
-            .route("/api/markdown/{filename}", get(api_get_markdown))
+            .route("/api/markdown/{*filename}", get(api_get_markdown))
             .route("/api/upload", post(handle_upload))
             .nest_service("/static", ServeDir::new("static"))
             .with_state(state)
@@ -133,14 +140,72 @@ async fn serve_directory(State(state): State<Arc<AppState>>) -> impl IntoRespons
                 let guard = files.read().await;
                 guard.clone()
             };
+            let listing = directory::list_directory_contents(&current_files, "");
             Html(html::render_directory_page(
-                &current_files,
-                dir_path,
-                language,
-                true,
+                &listing, dir_path, language, true,
             ))
         }
         _ => Html("<h1>Error: Invalid mode</h1>".to_string()),
+    }
+}
+
+/// Handler for directory navigation within nested folders
+async fn serve_directory_path(
+    State(state): State<Arc<AppState>>,
+    Path(path): Path<String>,
+) -> impl IntoResponse {
+    match state.as_ref() {
+        AppState::Directory {
+            dir_path,
+            files,
+            language,
+            ..
+        } => {
+            let requested = path.trim_matches('/');
+            let segments: Vec<&str> = requested.split('/').filter(|seg| !seg.is_empty()).collect();
+            if segments.contains(&"..") {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Html(language.text("error_not_found").to_string()),
+                )
+                    .into_response();
+            }
+
+            let normalized = segments.join("/");
+
+            let snapshot = {
+                let guard = files.read().await;
+                guard.clone()
+            };
+
+            let exists = if normalized.is_empty() {
+                true
+            } else {
+                let prefix = format!("{}/", normalized);
+                snapshot
+                    .iter()
+                    .any(|file| file.name == normalized || file.name.starts_with(&prefix))
+            };
+
+            if !exists {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Html(html::render_page(
+                        &format!("<h1>{}</h1>", language.text("error_not_found")),
+                        language,
+                    )),
+                )
+                    .into_response();
+            }
+
+            let listing = directory::list_directory_contents(&snapshot, &normalized);
+
+            Html(html::render_directory_page(
+                &listing, dir_path, language, true,
+            ))
+            .into_response()
+        }
+        _ => Html("<h1>Error: Invalid mode</h1>".to_string()).into_response(),
     }
 }
 
@@ -468,7 +533,65 @@ async fn handle_upload(State(state): State<Arc<AppState>>, request: Request) -> 
             }
 
             let file_name = sanitized;
-            let destination = base_dir.join(&file_name);
+
+            let dir_header_raw = parts
+                .headers
+                .get("x-directory-path")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.trim().replace('\\', "/"));
+            let dir_header = dir_header_raw.as_deref().unwrap_or("");
+
+            let dir_segments: Vec<&str> = dir_header
+                .split('/')
+                .map(str::trim)
+                .filter(|seg| !seg.is_empty())
+                .collect();
+
+            if dir_segments
+                .iter()
+                .any(|seg| *seg == "." || *seg == ".." || seg.contains(".."))
+            {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(UploadResponse {
+                        success: false,
+                        message: language.text("upload_error").to_string(),
+                        file: None,
+                    }),
+                );
+            }
+
+            let normalized_dir = dir_segments.join("/");
+
+            let destination = if normalized_dir.is_empty() {
+                base_dir.join(&file_name)
+            } else {
+                base_dir.join(&normalized_dir).join(&file_name)
+            };
+
+            let logical_name = if normalized_dir.is_empty() {
+                file_name.clone()
+            } else {
+                format!("{}/{}", normalized_dir, file_name)
+            };
+
+            if let Some(parent_dir) = destination.parent()
+                && let Err(err) = fs::create_dir_all(parent_dir).await
+            {
+                tracing::error!(
+                    error = %err,
+                    ?parent_dir,
+                    "Failed to create directory for uploaded markdown file",
+                );
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(UploadResponse {
+                        success: false,
+                        message: language.text("upload_error").to_string(),
+                        file: None,
+                    }),
+                );
+            }
 
             if let Err(err) = fs::write(&destination, bytes.as_ref()).await {
                 tracing::error!(
@@ -488,11 +611,11 @@ async fn handle_upload(State(state): State<Arc<AppState>>, request: Request) -> 
 
             {
                 let mut guard = files.write().await;
-                if let Some(existing) = guard.iter_mut().find(|f| f.name == file_name) {
+                if let Some(existing) = guard.iter_mut().find(|f| f.name == logical_name) {
                     existing.path = destination.clone();
                 } else {
                     guard.push(MarkdownFile {
-                        name: file_name.clone(),
+                        name: logical_name.clone(),
                         path: destination.clone(),
                     });
                 }
@@ -501,12 +624,12 @@ async fn handle_upload(State(state): State<Arc<AppState>>, request: Request) -> 
 
             {
                 let mut cache = file_cache.write().await;
-                cache.remove(&file_name);
+                cache.remove(&logical_name);
             }
 
             tracing::info!(
                 directory = %dir_path,
-                file = %file_name,
+                file = %logical_name,
                 "Markdown file uploaded",
             );
 
@@ -515,7 +638,7 @@ async fn handle_upload(State(state): State<Arc<AppState>>, request: Request) -> 
                 Json(UploadResponse {
                     success: true,
                     message: language.text("upload_success").to_string(),
-                    file: Some(file_name),
+                    file: Some(logical_name),
                 }),
             )
         }
