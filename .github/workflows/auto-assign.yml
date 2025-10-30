@@ -1,14 +1,20 @@
 name: auto-assign
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, reopened]
 permissions:
-    pull-requests: write
+  contents: read
+  pull-requests: write
+  issues: write
 jobs:
   add-reviewers:
     runs-on: ubuntu-latest
     steps:
-      - uses: kentaro-m/auto-assign-action@v2.0.0
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto-assign reviewers and assignees
+        uses: kentaro-m/auto-assign-action@v2.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: .github/auto-assign.yml
