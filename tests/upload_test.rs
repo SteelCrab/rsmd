@@ -279,3 +279,143 @@ async fn upload_rejects_invalid_directory_path() {
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn upload_with_nested_directory_path() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let state = directory_state(&temp_dir);
+
+    if let AppState::Directory { files, .. } = state.as_ref() {
+        let app = create_router(state.clone());
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/upload")
+                    .header("x-file-name", "deep.md")
+                    .header("x-directory-path", "docs/api/v2")
+                    .body(Body::from("# Deep nested"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let guard = files.read().await;
+        let uploaded = guard.iter().find(|item| item.name == "docs/api/v2/deep.md");
+        assert!(uploaded.is_some(), "File should be uploaded to nested path");
+
+        let expected_path = temp_dir.path().join("docs/api/v2/deep.md");
+        assert!(
+            expected_path.exists(),
+            "Nested directories should be created"
+        );
+    } else {
+        panic!("expected directory state");
+    }
+}
+
+#[tokio::test]
+async fn upload_with_empty_directory_path() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let state = directory_state(&temp_dir);
+
+    if let AppState::Directory { files, .. } = state.as_ref() {
+        let app = create_router(state.clone());
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/upload")
+                    .header("x-file-name", "root.md")
+                    .header("x-directory-path", "")
+                    .body(Body::from("# Root level"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let guard = files.read().await;
+        let uploaded = guard.iter().find(|item| item.name == "root.md");
+        assert!(uploaded.is_some(), "File should be uploaded to root");
+    } else {
+        panic!("expected directory state");
+    }
+}
+
+#[tokio::test]
+async fn upload_rejects_directory_path_with_dots() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let state = directory_state(&temp_dir);
+    let app = create_router(state);
+
+    // Test with single dot
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/upload")
+                .header("x-file-name", "test.md")
+                .header("x-directory-path", "./current")
+                .body(Body::from("# Test"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Test with embedded dots
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/upload")
+                .header("x-file-name", "test.md")
+                .header("x-directory-path", "docs/../etc")
+                .body(Body::from("# Test"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn upload_with_whitespace_in_directory_path() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let state = directory_state(&temp_dir);
+
+    if let AppState::Directory { files, .. } = state.as_ref() {
+        let app = create_router(state.clone());
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/upload")
+                    .header("x-file-name", "doc.md")
+                    .header("x-directory-path", "  docs/guides  ")
+                    .body(Body::from("# With spaces"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let guard = files.read().await;
+        // Whitespace should be trimmed
+        let uploaded = guard.iter().find(|item| item.name == "docs/guides/doc.md");
+        assert!(uploaded.is_some(), "Path should be normalized");
+    } else {
+        panic!("expected directory state");
+    }
+}

@@ -530,3 +530,223 @@ async fn test_korean_language_support() {
     // Check that Korean text is present
     assert!(body_str.contains("마크다운") || body_str.contains("lang=\"ko\""));
 }
+
+#[tokio::test]
+async fn test_serve_directory_path_nested_folders() {
+    let state = Arc::new(AppState::Directory {
+        dir_path: "/test".to_string(),
+        files: Arc::new(RwLock::new(vec![
+            MarkdownFile {
+                name: "docs/api.md".to_string(),
+                path: PathBuf::from("/test/docs/api.md"),
+            },
+            MarkdownFile {
+                name: "docs/guide.md".to_string(),
+                path: PathBuf::from("/test/docs/guide.md"),
+            },
+            MarkdownFile {
+                name: "readme.md".to_string(),
+                path: PathBuf::from("/test/readme.md"),
+            },
+        ])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: PathBuf::from("/test"),
+    });
+
+    let app = create_router(state);
+
+    // Test navigating to /dir/docs
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/dir/docs")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    // Should show files in docs folder
+    assert!(body_str.contains("api.md"));
+    assert!(body_str.contains("guide.md"));
+    // Should not show root level files
+    assert!(!body_str.contains("readme.md"));
+}
+
+#[tokio::test]
+async fn test_directory_navigation_with_path_traversal_attempt() {
+    let state = Arc::new(AppState::Directory {
+        dir_path: "/test".to_string(),
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
+            name: "test.md".to_string(),
+            path: PathBuf::from("/test/test.md"),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: PathBuf::from("/test"),
+    });
+
+    let app = create_router(state);
+
+    // Attempt path traversal
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/dir/../etc/passwd")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Should reject with BAD_REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_directory_navigation_nonexistent_path() {
+    let state = Arc::new(AppState::Directory {
+        dir_path: "/test".to_string(),
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
+            name: "test.md".to_string(),
+            path: PathBuf::from("/test/test.md"),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: PathBuf::from("/test"),
+    });
+
+    let app = create_router(state);
+
+    // Navigate to non-existent directory
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/dir/nonexistent")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Should return NOT_FOUND
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_directory_mode_handles_file_requests() {
+    // Create directory state
+    let temp_dir = tempfile::tempdir().unwrap();
+    let test_file = temp_dir.path().join("test.md");
+    std::fs::write(&test_file, "# Test Content").unwrap();
+
+    let state = Arc::new(AppState::Directory {
+        dir_path: temp_dir.path().to_str().unwrap().to_string(),
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
+            name: "test.md".to_string(),
+            path: test_file.clone(),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: temp_dir.path().to_path_buf(),
+    });
+
+    let app = create_router(state);
+
+    // Directory mode should handle /view/filename requests
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/view/test.md")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(body_str.contains("Test Content"));
+}
+
+#[tokio::test]
+async fn test_serve_raw_with_directory_state() {
+    let state = Arc::new(AppState::Directory {
+        dir_path: "/test".to_string(),
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
+            name: "test.md".to_string(),
+            path: PathBuf::from("/test/test.md"),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: PathBuf::from("/test"),
+    });
+
+    let app = create_router(state);
+
+    // Accessing /raw in directory mode should work via /raw/{filename}
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/raw/test.md")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_directory_navigation_root_path() {
+    let state = Arc::new(AppState::Directory {
+        dir_path: "/test".to_string(),
+        files: Arc::new(RwLock::new(vec![
+            MarkdownFile {
+                name: "root.md".to_string(),
+                path: PathBuf::from("/test/root.md"),
+            },
+            MarkdownFile {
+                name: "docs/nested.md".to_string(),
+                path: PathBuf::from("/test/docs/nested.md"),
+            },
+        ])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: PathBuf::from("/test"),
+    });
+
+    let app = create_router(state);
+
+    // Navigate to root directory via main page
+    let response = app
+        .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    // Should show root level file and docs folder
+    assert!(body_str.contains("root.md"));
+    assert!(body_str.contains("docs"));
+}
