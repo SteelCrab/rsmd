@@ -1,13 +1,30 @@
+# Auto-assign configuration for pull requests
 addReviewers: true
-addAssignees: true
+addAssignees: author
 
+# List of GitHub usernames to be added as reviewers
+# Note: PR author cannot review their own PR
 reviewers:
   - SteelCrab
   - coderabbitai
 
+# Number of reviewers to assign (optional, defaults to all)
+# Set to 0 to assign all available reviewers
+numberOfReviewers: 0
+
+# Assign the PR author as assignee
 assignees:
   - SteelCrab
 
+# Number of assignees (optional, defaults to all)
+numberOfAssignees: 1
+
+# Skip assignment if PR title contains these keywords
 skipKeywords:
+  - wip
   - WIP
+  - draft
   - Draft
+
+# Skip if PR is in draft mode
+skipDraftPR: true

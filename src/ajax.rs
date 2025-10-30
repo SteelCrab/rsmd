@@ -5,58 +5,10 @@ pub fn dynamic_script() -> &'static str {
     r#"<script>
 // Simple fetch-based dynamic loading (no external dependencies)
 document.addEventListener('DOMContentLoaded', function() {
-    const contentArea = document.getElementById('content-area');
     const fileListContainer = document.querySelector('.file-list');
     const emptyState = document.getElementById('empty-state');
-
-    const setActiveLink = (link) => {
-        document.querySelectorAll('.file-list li.active').forEach(li => li.classList.remove('active'));
-        if (link && link.parentElement) {
-            link.parentElement.classList.add('active');
-        }
-    };
-
-    const loadContent = (url, href) => {
-        if (!contentArea || !url) return;
-        contentArea.style.opacity = '0.6';
-
-        fetch(url, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-            .then(r => r.text())
-            .then(html => {
-                contentArea.innerHTML = html;
-                contentArea.style.opacity = '1';
-
-                if (href) {
-                    history.pushState({}, '', href);
-                }
-
-                const h1 = contentArea.querySelector('h1');
-                if (h1) document.title = h1.textContent;
-            })
-            .catch(() => {
-                contentArea.innerHTML = '<p style="color: #ef4444;">Error loading file</p>';
-                contentArea.style.opacity = '1';
-            });
-    };
-
-    document.addEventListener('click', function(event) {
-        const link = event.target.closest('a[data-load]');
-        if (!link) return;
-
-        event.preventDefault();
-        setActiveLink(link);
-        loadContent(link.getAttribute('data-load'), link.getAttribute('href'));
-    });
-
-    window.addEventListener('popstate', function() {
-        location.reload();
-    });
-
     const uploadArea = document.getElementById('upload-area');
+    const directoryBody = document.querySelector('.directory-body');
     if (!uploadArea) {
         return;
     }
@@ -84,22 +36,54 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/'/g, '&#x27;');
     };
 
+    const toViewHref = (name) => {
+        if (!name) return '/view/';
+        return '/view/' + name.split('/').map(part => encodeURIComponent(part)).join('/');
+    };
+
     const refreshFileList = (activeFile) => {
         if (!fileListContainer) return Promise.resolve();
+        const currentPath = uploadArea.dataset.currentPath || '';
+        uploadArea.dataset.currentPath = currentPath;
+        if (directoryBody) {
+            directoryBody.setAttribute('data-current-path', currentPath);
+        }
+        const prefix = currentPath ? currentPath + '/' : '';
         return fetch('/api/files')
             .then(r => r.json())
             .then(data => {
                 if (!data || !Array.isArray(data.files)) return;
 
-                const items = data.files.map(name => {
-                    const display = escapeHtml(name);
-                    return `<li><a href="/view/${display}" data-load="/api/content/${display}">${display}</a></li>`;
-                }).join('');
+                const items = data.files
+                    .filter(name => {
+                        if (currentPath) {
+                            if (!name.startsWith(prefix)) return false;
+                            return !name.slice(prefix.length).includes('/');
+                        }
+                        return !name.includes('/');
+                    })
+                    .map(name => {
+                        const displayName = currentPath ? name.slice(prefix.length) : name;
+                        const shortName = displayName.split('/').pop() || displayName;
+                        const href = escapeHtml(toViewHref(name));
+                        const display = escapeHtml(shortName);
+                        const pathLabel = escapeHtml(name);
+                        return `<a class="file-entry" href="${href}">
+    <span class="file-entry__icon">📄</span>
+    <span class="file-entry__text">
+        <span class="file-entry__name">${display}</span>
+        <span class="file-entry__path">/${pathLabel}</span>
+    </span>
+    <span class="file-entry__arrow">→</span>
+</a>`;
+                    })
+                    .join('');
 
                 fileListContainer.innerHTML = items;
 
                 if (emptyState) {
-                    if (data.files.length === 0) {
+                    const hasFolders = !!document.querySelector('.folder-grid .folder-card');
+                    if (items.trim().length === 0 && !hasFolders) {
                         emptyState.classList.remove('hidden');
                     } else {
                         emptyState.classList.add('hidden');
@@ -107,13 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if (activeFile) {
-                    const target = Array.from(fileListContainer.querySelectorAll('a[data-load]'))
-                        .find(link => link.getAttribute('data-load') === `/api/content/${activeFile}`);
-                    if (target) {
-                        setActiveLink(target);
-                        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        loadContent(target.getAttribute('data-load'), target.getAttribute('href'));
-                    }
+                    window.location.href = toViewHref(activeFile);
                 }
             })
             .catch(() => {});
@@ -121,6 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const handleUpload = (file) => {
         if (!file) return;
+        const currentPath = uploadArea.dataset.currentPath || '';
         const name = file.name.toLowerCase();
         if (!(name.endsWith('.md') || name.endsWith('.markdown'))) {
             setStatus(uploadArea.dataset.invalid || 'Invalid file type', 'error');
@@ -135,7 +114,8 @@ document.addEventListener('DOMContentLoaded', function() {
             body: file,
             headers: {
                 'X-File-Name': file.name,
-                'Content-Type': 'application/octet-stream'
+                'Content-Type': 'application/octet-stream',
+                'X-Directory-Path': currentPath
             }
         })
             .then(async response => {
@@ -189,6 +169,18 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadArea.classList.remove('dragover');
         const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
         handleUpload(file);
+    });
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+        const card = target.closest('.folder-card');
+        if (!card || !directoryBody) return;
+        const folderPath = card.dataset.path || '';
+        directoryBody.setAttribute('data-current-path', folderPath);
+        uploadArea.dataset.currentPath = folderPath;
     });
 });
 </script>"#
