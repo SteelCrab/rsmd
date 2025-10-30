@@ -5,7 +5,9 @@ fn test_dynamic_script_contains_fetch() {
     let script = dynamic_script();
     assert!(script.contains("fetch("));
     assert!(script.contains("<script"));
-    assert!(script.contains("data-load"));
+    assert!(script.contains("upload-area"));
+    assert!(script.contains("dataset.currentPath"));
+    assert!(script.contains("X-Directory-Path"));
 }
 
 #[test]

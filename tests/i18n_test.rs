@@ -20,6 +20,9 @@ fn test_language_text_english() {
     let lang = Language::English;
     assert_eq!(lang.text("title_viewer"), "Markdown Viewer");
     assert_eq!(lang.text("directory_label"), "Markdown Files");
+    assert_eq!(lang.text("folders_label"), "Folders");
+    assert_eq!(lang.text("files_heading"), "Markdown Files");
+    assert_eq!(lang.text("breadcrumb_root"), "Home");
 }
 
 #[test]
@@ -49,4 +52,7 @@ fn test_language_text_korean() {
     let lang = Language::Korean;
     assert_eq!(lang.text("title_viewer"), "마크다운 뷰어");
     assert_eq!(lang.text("directory_label"), "마크다운 파일 목록");
+    assert_eq!(lang.text("folders_label"), "폴더");
+    assert_eq!(lang.text("files_heading"), "마크다운 파일");
+    assert_eq!(lang.text("breadcrumb_root"), "홈");
 }

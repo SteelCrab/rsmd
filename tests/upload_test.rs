@@ -171,7 +171,7 @@ async fn upload_succeeds_and_updates_state() {
 
     let mut cache_map = HashMap::new();
     cache_map.insert(
-        "notes.md".to_string(),
+        "guides/notes.md".to_string(),
         ("# old".to_string(), "<p>old</p>".to_string()),
     );
 
@@ -191,6 +191,7 @@ async fn upload_succeeds_and_updates_state() {
                 .method("POST")
                 .uri("/api/upload")
                 .header("x-file-name", "../notes.md")
+                .header("x-directory-path", "guides")
                 .body(Body::from("# New content"))
                 .unwrap(),
         )
@@ -207,15 +208,18 @@ async fn upload_succeeds_and_updates_state() {
     .unwrap();
 
     assert_eq!(payload["success"], Value::Bool(true));
-    assert_eq!(payload["file"], Value::String("notes.md".to_string()));
+    assert_eq!(
+        payload["file"],
+        Value::String("guides/notes.md".to_string())
+    );
 
-    let expected_path = base_dir.join("notes.md");
+    let expected_path = base_dir.join("guides").join("notes.md");
     let contents = tokio::fs::read_to_string(&expected_path).await.unwrap();
     assert!(contents.contains("New content"));
 
     if let AppState::Directory { file_cache, .. } = state.as_ref() {
         let cache_guard = file_cache.read().await;
-        assert!(!cache_guard.contains_key("notes.md"));
+        assert!(!cache_guard.contains_key("guides/notes.md"));
     } else {
         panic!("expected directory state");
     }
@@ -223,7 +227,7 @@ async fn upload_succeeds_and_updates_state() {
     let guard = files.read().await;
     let uploaded = guard
         .iter()
-        .find(|item| item.name == "notes.md")
+        .find(|item| item.name == "guides/notes.md")
         .expect("uploaded file should be present");
     assert_eq!(uploaded.path, expected_path);
 }
@@ -252,4 +256,26 @@ async fn upload_rejected_in_single_file_mode() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn upload_rejects_invalid_directory_path() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let state = directory_state(&temp_dir);
+    let app = create_router(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/upload")
+                .header("x-file-name", "notes.md")
+                .header("x-directory-path", "../outside")
+                .body(Body::from("# Should fail"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

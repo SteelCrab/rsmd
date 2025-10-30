@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -52,4 +53,86 @@ pub fn scan_markdown_files(dir_path: &str) -> io::Result<Vec<MarkdownFile>> {
     md_files.sort_by(|a, b| a.name.cmp(&b.name));
 
     Ok(md_files)
+}
+
+/// Represents a sub-directory entry in the markdown library
+#[derive(Clone, Debug)]
+pub struct DirectoryEntry {
+    pub name: String,
+    pub path: String,
+}
+
+/// Represents the current directory view (sub-directories + files)
+#[derive(Clone, Debug)]
+pub struct DirectoryListing {
+    pub current_path: String,
+    pub parent: Option<String>,
+    pub directories: Vec<DirectoryEntry>,
+    pub files: Vec<MarkdownFile>,
+}
+
+/// Build a directory listing for the provided relative path
+pub fn list_directory_contents(all_files: &[MarkdownFile], current_path: &str) -> DirectoryListing {
+    let normalized = current_path.trim_matches('/');
+    let prefix = if normalized.is_empty() {
+        String::new()
+    } else {
+        format!("{}/", normalized)
+    };
+
+    let mut directories = BTreeSet::new();
+    let mut files = Vec::new();
+
+    for file in all_files {
+        let name = &file.name;
+        if !prefix.is_empty() {
+            if !name.starts_with(&prefix) {
+                continue;
+            }
+
+            let remainder = &name[prefix.len()..];
+            if remainder.is_empty() {
+                continue;
+            }
+
+            if let Some(pos) = remainder.find('/') {
+                directories.insert(remainder[..pos].to_string());
+            } else {
+                files.push(file.clone());
+            }
+        } else if let Some(pos) = name.find('/') {
+            directories.insert(name[..pos].to_string());
+        } else {
+            files.push(file.clone());
+        }
+    }
+
+    files.sort_by(|a, b| a.name.cmp(&b.name));
+
+    let directories = directories
+        .into_iter()
+        .map(|name| {
+            let path = if normalized.is_empty() {
+                name.clone()
+            } else {
+                format!("{}/{}", normalized, name)
+            };
+            DirectoryEntry { name, path }
+        })
+        .collect();
+
+    let parent = if normalized.is_empty() {
+        None
+    } else if let Some((parent, _)) = normalized.rsplit_once('/') {
+        Some(parent.to_string())
+    } else {
+        Some(String::new())
+    };
+
+    DirectoryListing {
+        current_path: normalized.to_string(),
+        parent,
+        directories,
+        files,
+    }
 }

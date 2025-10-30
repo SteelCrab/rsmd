@@ -49,7 +49,65 @@ async fn test_directory_page_renders() {
     // Check that directory page contains file links
     assert!(body_str.contains("test.md"));
     assert!(body_str.contains("another.md"));
-    assert!(body_str.contains("data-load"));
+    assert!(body_str.contains("directory-body"));
+    assert!(body_str.contains("file-list file-entries"));
+    assert!(body_str.contains(r#"href="/view/test.md""#));
+    assert!(body_str.contains(r#"href="/view/another.md""#));
+    assert!(body_str.contains("file-entry__path"));
+    assert!(body_str.contains("data-current-path=\"\""));
+    assert!(!body_str.contains("data-load"));
+}
+
+#[tokio::test]
+async fn test_nested_directory_navigation() {
+    let state = Arc::new(AppState::Directory {
+        dir_path: "/content".to_string(),
+        files: Arc::new(RwLock::new(vec![
+            MarkdownFile {
+                name: "guides/docker.md".to_string(),
+                path: PathBuf::from("/content/guides/docker.md"),
+            },
+            MarkdownFile {
+                name: "guides/rust.md".to_string(),
+                path: PathBuf::from("/content/guides/rust.md"),
+            },
+            MarkdownFile {
+                name: "guides/workflows/ci.md".to_string(),
+                path: PathBuf::from("/content/guides/workflows/ci.md"),
+            },
+        ])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: PathBuf::from("/content"),
+    });
+
+    let app = create_router(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/dir/guides")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(body_str.contains("folder-section"));
+    assert!(body_str.contains("folder-card"));
+    assert!(body_str.contains(r#"href="/dir/guides/workflows""#));
+    assert!(body_str.contains(r#"href="/view/guides/docker.md""#));
+    assert!(body_str.contains(r#"href="/view/guides/rust.md""#));
+    assert!(body_str.contains("data-current-path=\"guides\""));
+    assert!(body_str.contains("data-path=\"guides/workflows\""));
+    assert!(body_str.contains("breadcrumbs"));
 }
 
 #[tokio::test]
@@ -264,6 +322,53 @@ async fn test_view_route_serves_markdown() {
     if let AppState::Directory { file_cache, .. } = state.as_ref() {
         let guard = file_cache.read().await;
         assert!(guard.contains_key("view.md"));
+    }
+}
+
+#[tokio::test]
+async fn test_view_route_serves_nested_markdown() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let nested_dir = temp_dir.path().join("docs");
+    std::fs::create_dir_all(&nested_dir).unwrap();
+    let test_file = nested_dir.join("guide.md");
+    std::fs::write(&test_file, "# Guide\n\nDetails").unwrap();
+
+    let state = Arc::new(AppState::Directory {
+        dir_path: temp_dir.path().to_str().unwrap().to_string(),
+        files: Arc::new(RwLock::new(vec![MarkdownFile {
+            name: "docs/guide.md".to_string(),
+            path: test_file.clone(),
+        }])),
+        file_cache: Arc::new(RwLock::new(HashMap::new())),
+        language: Language::English,
+        base_dir: temp_dir.path().to_path_buf(),
+    });
+
+    let app = create_router(state.clone());
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/view/docs/guide.md")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    assert!(body_str.contains("Guide"));
+    assert!(body_str.contains("Details"));
+
+    if let AppState::Directory { file_cache, .. } = state.as_ref() {
+        let guard = file_cache.read().await;
+        assert!(guard.contains_key("docs/guide.md"));
     }
 }
 
