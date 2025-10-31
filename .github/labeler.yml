@@ -1,0 +1,94 @@
+# Labeler configuration for rsmd
+# Automatically applies labels to pull requests based on file paths
+
+# Documentation changes
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.md'
+      - 'AGENTS.md'
+      - 'ARCHITECTURE.md'
+      - 'CLAUDE.md'
+      - 'README.md'
+
+# CI/CD changes
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
+      - 'codecov.yml'
+      - 'rust-toolchain.toml'
+      - 'githooks/**'
+
+# Dependencies
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+# Source code - Rust
+rust:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/**/*.rs'
+      - '**/*.rs'
+
+# Tests
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'tests/**'
+      - '**/*_test.rs'
+      - 'test_docs/**'
+
+# Frontend/Static assets
+frontend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'static/**'
+      - '**/*.html'
+      - '**/*.css'
+      - '**/*.js'
+
+# Internationalization
+i18n:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/i18n/**'
+      - 'src/i18n.rs'
+
+# Server/API changes
+server:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/server.rs'
+      - 'src/ajax.rs'
+
+# Markdown rendering
+markdown:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/markdown.rs'
+
+# HTML rendering
+html:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/html.rs'
+
+# Directory handling
+directory:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/directory.rs'
+
+# Configuration files
+# Configuration files
+config:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.coderabbit.yml'
+      - '.all-contributorsrc'
+      - '.gitignore'
+      - 'codecov.yml'

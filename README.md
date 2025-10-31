@@ -77,7 +77,9 @@ rsmd/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml       # CI testing
-│       └── release.yml  # Release automation
+│       ├── release.yml  # Release: build binaries on tags
+│       ├── contributors.yml # Auto-update contributors
+│       └── labeler.yml     # Auto-label PRs and issues
 └── sample.md         # Example markdown file
 ```
 

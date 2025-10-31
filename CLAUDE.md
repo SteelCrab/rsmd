@@ -53,9 +53,12 @@ rsmd/
 │   ├── html.rs       # HTML template generation
 │   └── server.rs     # Web server (Axum) and routing
 ├── .github/
+│   ├── labeler.yml   # Auto-labeling config for PRs and issues
 │   └── workflows/
 │       ├── ci.yml       # CI: test, clippy, fmt on push/PR
-│       └── release.yml  # Release: build binaries on tags
+│       ├── release.yml  # Release: build binaries on tags
+│       ├── contributors.yml # Auto-update contributors
+│       └── labeler.yml     # Auto-label PRs and issues
 └── Cargo.toml       # Dependencies and metadata
 ```
 

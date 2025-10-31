@@ -1,0 +1,29 @@
+# Issue labeler configuration for rsmd
+# Automatically applies labels to issues based on title and body content
+
+bug:
+  - '(bug|error|issue|problem|broken|crash|fail)'
+
+enhancement:
+  - '(feature|enhancement|improve|add|new)'
+
+documentation:
+  - '(doc|documentation|readme|guide|tutorial)'
+
+question:
+  - '(question|help|how to|how do|why)'
+
+ci:
+  - '(ci|cd|workflow|action|github action|pipeline)'
+
+dependencies:
+  - '(dependency|dependencies|cargo|package|upgrade|update)'
+
+performance:
+  - '(performance|slow|speed|optimize|optimization)'
+
+tests:
+  - '(test|testing|coverage)'
+
+security:
+  - '(security|vulnerability|cve|exploit)'
