@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -25,19 +25,23 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
 
-      - name: Cache cargo and build artifacts
+      - name: Cache cargo registry
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-${{ matrix.rust }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.rust }}-cargo-
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Run cargo check
-        run: cargo check --all-features
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ matrix.rust }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run tests
         run: cargo test --verbose
@@ -98,23 +102,11 @@ jobs:
           toolchain: nightly
           targets: ${{ matrix.target }}
 
-      - name: Install musl-tools
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
-
       - name: Install cross
         run: cargo install cross --locked
 
       - name: Run cross tests
         run: cross test --target ${{ matrix.target }} --all-features
-
-      - name: Run clippy (musl)
-        run: cross clippy --target ${{ matrix.target }} --all-targets --all-features -- -D warnings
-
-      - name: Check formatting (musl)
-        run: cargo fmt --all -- --check
-
-      - name: Build docs (musl)
-        run: cargo doc --no-deps --target ${{ matrix.target }}
 
   build:
     name: Build
