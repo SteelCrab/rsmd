@@ -3,11 +3,26 @@
   "projectOwner": "SteelCrab",
   "repoType": "github",
   "repoHost": "https://github.com/SteelCrab/rsmd.git",
-  "files": ["README.md"],
+  "files": [
+    "README.md"
+  ],
   "imageSize": 100,
   "commit": true,
   "contributorsPerLine": 7,
   "contributorsSortAlphabetically": false,
   "skipCi": true,
-  "contributors": []
+  "contributors": [
+    {
+      "login": "Utkarsh9571",
+      "name": "Utkarsh9571",
+      "avatar_url": "https://avatars.githubusercontent.com/u/205407787?v=4",
+      "profile": "https://github.com/Utkarsh9571",
+      "contributions": [
+        "code",
+        "infra"
+      ]
+    }
+  ],
+  "commitType": "docs",
+  "commitConvention": "angular"
 }
