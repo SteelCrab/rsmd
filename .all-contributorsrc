@@ -21,6 +21,16 @@
         "code",
         "infra"
       ]
+    },
+    {
+      "login": "Arghya-1121",
+      "name": "Arghya Sarkar",
+      "avatar_url": "https://avatars.githubusercontent.com/u/63844005?v=4",
+      "profile": "http://thetadashigroup.wordpress.com",
+      "contributions": [
+        "code",
+        "infra"
+      ]
     }
   ],
   "commitType": "docs",
