@@ -122,12 +122,14 @@ This automatically builds and publishes binaries for all supported platforms.
 <table>
   <tbody>
     <tr>
-      <td align="center"><a href="https://github.com/SteelCrab"><img src="https://github.com/SteelCrab.png" width="100px;" alt="SteelCrab"/><br /><sub><b>SteelCrab</b></sub></a><br /><a href="#code-SteelCrab" title="Code">💻</a> <a href="#infra-SteelCrab" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Utkarsh9571"><img src="https://avatars.githubusercontent.com/u/205407787?v=4?s=100" width="100px;" alt="Utkarsh9571"/><br /><sub><b>Utkarsh9571</b></sub></a><br /><a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=Utkarsh9571" title="Code">💻</a> <a href="#infra-Utkarsh9571" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
     </tr>
   </tbody>
 </table>
-<!-- markdownlint-enable -->
+
+<!-- markdownlint-restore -->
 <!-- prettier-ignore-end -->
+
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 Thanks goes to these wonderful people!
