@@ -113,7 +113,7 @@ This automatically builds and publishes binaries for all supported platforms.
 ## Contributors
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
@@ -124,6 +124,7 @@ This automatically builds and publishes binaries for all supported platforms.
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Utkarsh9571"><img src="https://avatars.githubusercontent.com/u/205407787?v=4?s=100" width="100px;" alt="Utkarsh9571"/><br /><sub><b>Utkarsh9571</b></sub></a><br /><a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=Utkarsh9571" title="Code">💻</a> <a href="#infra-Utkarsh9571" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://thetadashigroup.wordpress.com"><img src="https://avatars.githubusercontent.com/u/63844005?v=4?s=100" width="100px;" alt="Arghya Sarkar"/><br /><sub><b>Arghya Sarkar</b></sub></a><br /><a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=Arghya-1121" title="Code">💻</a> <a href="#infra-Arghya-1121" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/SteelCrab"><img src="https://avatars.githubusercontent.com/u/43775386?v=4?s=100" width="100px;" alt="pista"/><br /><sub><b>pista</b></sub></a><br /><a href="#blog-SteelCrab" title="Blogposts">📝</a> <a href="#maintenance-SteelCrab" title="Maintenance">🚧</a> <a href="#infra-SteelCrab" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=SteelCrab" title="Code">💻</a> <a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=SteelCrab" title="Tests">⚠️</a> <a href="#translation-SteelCrab" title="Translation">🌍</a> <a href="#tool-SteelCrab" title="Tools">🔧</a> <a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/pulls?q=is%3Apr+reviewed-by%3ASteelCrab" title="Reviewed Pull Requests">👀</a> <a href="#platform-SteelCrab" title="Packaging/porting to new platform">📦</a> <a href="#mentoring-SteelCrab" title="Mentoring">🧑‍🏫</a></td>
     </tr>
   </tbody>
 </table>
