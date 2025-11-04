@@ -1,25 +1,13 @@
 {
+  "projectName": "rsmd",
+  "projectOwner": "SteelCrab",
+  "repoType": "github",
+  "repoHost": "https://github.com/SteelCrab/rsmd.git",
   "files": ["README.md"],
   "imageSize": 100,
   "commit": true,
-  "commitConvention": "angular",
   "contributorsPerLine": 7,
-  "contributorsSortAlphabetically": true,
+  "contributorsSortAlphabetically": false,
   "skipCi": true,
-  "repoType": "github",
-  "repoHost": "https://github.com",
-  "projectName": "rsmd",
-  "projectOwner": "SteelCrab",
-  "contributors": [
-    {
-      "login": "SteelCrab",
-      "name": "SteelCrab",
-      "avatar_url": "https://github.com/SteelCrab.png",
-      "profile": "https://github.com/SteelCrab",
-      "contributions": ["code", "infra"]
-    }
-  ],
-  "badgeTemplate": "[![All Contributors](https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg?style=flat-square)](#contributors-)",
-  "contributorTemplate": "<a href=\"<%= contributor.profile %>\"><img src=\"<%= contributor.avatar_url %>\" width=\"<%= imageSize %>px\" alt=\"<%= contributor.name %>\"/><br /><sub><b><%= contributor.name %></b></sub></a>",
-  "contributorsSection": "Contributors"
+  "contributors": []
 }
