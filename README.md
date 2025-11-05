@@ -123,7 +123,7 @@ This automatically builds and publishes binaries for all supported platforms.
   <tbody>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Utkarsh9571"><img src="https://avatars.githubusercontent.com/u/205407787?v=4?s=100" width="100px;" alt="Utkarsh9571"/><br /><sub><b>Utkarsh9571</b></sub></a><br /><a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=Utkarsh9571" title="Code">💻</a> <a href="#infra-Utkarsh9571" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="http://thetadashigroup.wordpress.com"><img src="https://avatars.githubusercontent.com/u/63844005?v=4?s=100" width="100px;" alt="Arghya Sarkar"/><br /><sub><b>Arghya Sarkar</b></sub></a><br /><a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=Arghya-1121" title="Code">💻</a> <a href="#infra-Arghya-1121" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://thetadashigroup.wordpress.com"><img src="https://avatars.githubusercontent.com/u/63844005?v=4?s=100" width="100px;" alt="Arghya Sarkar"/><br /><sub><b>Arghya Sarkar</b></sub></a><br /><a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=Arghya-1121" title="Code">💻</a> <a href="#infra-Arghya-1121" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="https://github.com/SteelCrab/rsmd.git/SteelCrab/rsmd/commits?author=Arghya-1121" title="Tests">⚠️</a></td>
     </tr>
   </tbody>
 </table>
