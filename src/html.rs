@@ -171,6 +171,14 @@ pub fn render_page(html_content: &str, language: &Language) -> String {
             h2 {{ font-size: 1.75rem; }}
         }}
     </style>
+    <script>
+    document.addEventListener("keydown", function(event) {{
+      if ((event.ctrlKey || event.metaKey) && event.key === "\\") {{
+        event.preventDefault();
+        window.open("/compare", "_self");
+      }}
+    }});
+    </script>
 </head>
 <body>
     <div class="container">
@@ -240,6 +248,14 @@ pub fn render_raw_page(markdown_content: &str, language: &Language) -> String {
             }}
         }}
     </style>
+    <script>
+    document.addEventListener("keydown", function(event) {{
+      if ((event.ctrlKey || event.metaKey) && event.key === "\\") {{
+        event.preventDefault();
+        window.open("/compare", "_self");
+      }}
+    }});
+    </script>
 </head>
 <body>
     <pre>{}</pre>
@@ -511,6 +527,14 @@ pub fn render_compare_page(
             }}
         }}
     </style>
+    <script>
+    document.addEventListener("keydown", function(event) {{
+      if ((event.ctrlKey || event.metaKey) && event.key === "\\") {{
+        event.preventDefault();
+        window.history.back();
+      }}
+    }});
+    </script>
 </head>
 <body>
     <div class="compare-container">
