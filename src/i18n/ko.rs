@@ -21,6 +21,9 @@ pub fn get_text(key: &str) -> &'static str {
         "upload_error" => "파일 업로드에 실패했습니다.",
         "upload_invalid_type" => "md 확장자 파일만 지원됩니다.",
         "upload_uploading" => "업로드 중...",
+        "title_compare" => "마크다운 비교",
+        "rendered_view" => "렌더링된 보기",
+        "raw_view" => "원본 마크다운",
         _ => "",
     }
 }
