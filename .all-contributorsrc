@@ -29,7 +29,8 @@
       "profile": "http://thetadashigroup.wordpress.com",
       "contributions": [
         "code",
-        "infra"
+        "infra",
+        "test"
       ]
     }
   ],
