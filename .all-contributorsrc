@@ -29,8 +29,25 @@
       "profile": "http://thetadashigroup.wordpress.com",
       "contributions": [
         "code",
+        "infra"
+      ]
+    },
+    {
+      "login": "SteelCrab",
+      "name": "pista",
+      "avatar_url": "https://avatars.githubusercontent.com/u/43775386?v=4",
+      "profile": "https://github.com/SteelCrab",
+      "contributions": [
+        "blog",
+        "maintenance",
         "infra",
-        "test"
+        "code",
+        "test",
+        "translation",
+        "tool",
+        "review",
+        "platform",
+        "mentoring"
       ]
     }
   ],
