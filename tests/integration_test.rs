@@ -750,3 +750,79 @@ async fn test_directory_navigation_root_path() {
     assert!(body_str.contains("root.md"));
     assert!(body_str.contains("docs"));
 }
+
+#[tokio::test]
+async fn test_compare_route_serves_comparison_page() {
+    let state = Arc::new(AppState::SingleFile {
+        markdown_content: "# Test\n\nThis is a test.".to_string(),
+        html_content: "<h1>Test</h1><p>This is a test.</p>".to_string(),
+        language: Language::English,
+        base_dir: PathBuf::from("/tmp"),
+    });
+
+    let app = create_router(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/compare")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    // Check that comparison page contains both rendered and raw content
+    assert!(body_str.contains("<h1>Test</h1>"));
+    assert!(body_str.contains("# Test"));
+    assert!(body_str.contains("compare-container"));
+    assert!(body_str.contains("compare-panel"));
+    assert!(body_str.contains("rendered-content"));
+    assert!(body_str.contains("raw-content"));
+    assert!(body_str.contains("Markdown Comparison"));
+    assert!(body_str.contains("Rendered View"));
+    assert!(body_str.contains("Raw Markdown"));
+}
+
+#[tokio::test]
+async fn test_compare_route_korean_language() {
+    let state = Arc::new(AppState::SingleFile {
+        markdown_content: "# 테스트\n\n이것은 테스트입니다.".to_string(),
+        html_content: "<h1>테스트</h1><p>이것은 테스트입니다.</p>".to_string(),
+        language: Language::Korean,
+        base_dir: PathBuf::from("/tmp"),
+    });
+
+    let app = create_router(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/compare")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+    // Check Korean language content
+    assert!(body_str.contains("마크다운 비교"));
+    assert!(body_str.contains("렌더링된 보기"));
+    assert!(body_str.contains("원본 마크다운"));
+    assert!(body_str.contains("lang=\"ko\""));
+}
+
