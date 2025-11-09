@@ -56,7 +56,6 @@ fn test_from_file_missing_returns_error() {
     assert!(result.is_err());
 }
 
-
 #[test]
 fn test_markdown_parser_complex_markdown() {
     let parser =
