@@ -65,7 +65,8 @@ fn test_markdown_parser_new() {
 
 #[test]
 fn test_markdown_parser_complex_markdown() {
-    let parser = MarkdownParser::new("# Header\n\n- List item\n- Another item\n\n**Bold text**".to_string());
+    let parser =
+        MarkdownParser::new("# Header\n\n- List item\n- Another item\n\n**Bold text**".to_string());
     let html = parser.to_html();
     assert!(html.contains("<h1>"));
     assert!(html.contains("<ul>"));
@@ -75,7 +76,9 @@ fn test_markdown_parser_complex_markdown() {
 
 #[test]
 fn test_markdown_parser_tables() {
-    let parser = MarkdownParser::new("| Column 1 | Column 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |".to_string());
+    let parser = MarkdownParser::new(
+        "| Column 1 | Column 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |".to_string(),
+    );
     let html = parser.to_html();
     assert!(html.contains("<table>"));
     assert!(html.contains("<th>"));
@@ -84,7 +87,8 @@ fn test_markdown_parser_tables() {
 
 #[test]
 fn test_markdown_parser_code_blocks() {
-    let parser = MarkdownParser::new("```rust\nfn main() {\n    println!(\"Hello\");\n}\n```".to_string());
+    let parser =
+        MarkdownParser::new("```rust\nfn main() {\n    println!(\"Hello\");\n}\n```".to_string());
     let html = parser.to_html();
     assert!(html.contains("<pre>"));
     assert!(html.contains("<code"));
