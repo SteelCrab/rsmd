@@ -171,6 +171,14 @@ pub fn render_page(html_content: &str, language: &Language) -> String {
             h2 {{ font-size: 1.75rem; }}
         }}
     </style>
+    <script>
+    document.addEventListener("keydown", function(event) {{
+      if ((event.ctrlKey || event.metaKey) && event.key === "\\") {{
+        event.preventDefault();
+        window.open("/compare", "_self");
+      }}
+    }});
+    </script>
 </head>
 <body>
     <div class="container">
@@ -240,6 +248,14 @@ pub fn render_raw_page(markdown_content: &str, language: &Language) -> String {
             }}
         }}
     </style>
+    <script>
+    document.addEventListener("keydown", function(event) {{
+      if ((event.ctrlKey || event.metaKey) && event.key === "\\") {{
+        event.preventDefault();
+        window.open("/compare", "_self");
+      }}
+    }});
+    </script>
 </head>
 <body>
     <pre>{}</pre>
@@ -247,6 +263,309 @@ pub fn render_raw_page(markdown_content: &str, language: &Language) -> String {
 </html>"#,
         lang_code,
         language.text("title_raw"),
+        escape_html(markdown_content)
+    )
+}
+
+/// Generate a page where both raw and markdown content are shown side by side
+pub fn render_compare_page(
+    html_content: &str,
+    markdown_content: &str,
+    language: &Language,
+) -> String {
+    let lang_code = match language {
+        Language::English => "en",
+        Language::Korean => "ko",
+    };
+
+    format!(
+        r#"<!DOCTYPE html>
+<html lang="{}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{}</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            padding: 1rem;
+            -webkit-font-smoothing: antialiased;
+        }}
+
+        .compare-container {{
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 2rem;
+            height: calc(100vh - 2rem);
+        }}
+
+        @media (min-width: 1200px) {{
+            .compare-container {{
+                gap: 2.5rem;
+            }}
+        }}
+
+        .compare-panel {{
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e8e8e8;
+            overflow: hidden;
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }}
+
+        .compare-panel:hover {{
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }}
+
+        .panel-header {{
+            padding: 1rem 1.5rem;
+            background: #f8f8f8;
+            border-bottom: 1px solid #e8e8e8;
+            font-weight: 600;
+            color: #1a1a1a;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }}
+
+        .panel-content {{
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }}
+
+        .rendered-content {{
+            padding: 4rem 3.5rem;
+            line-height: 1.75;
+            color: #1a1a1a;
+        }}
+
+        .raw-content {{
+            padding: 2rem;
+            font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: #1a1a1a;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #fafafa;
+            height: 100%;
+        }}
+
+        /* Rendered content styles */
+        .rendered-content h1, .rendered-content h2, .rendered-content h3, 
+        .rendered-content h4, .rendered-content h5, .rendered-content h6 {{
+            font-weight: 600;
+            line-height: 1.4;
+            color: #1a1a1a;
+            margin: 2.5rem 0 1rem;
+        }}
+
+        .rendered-content h1 {{ font-size: 2.5rem; margin-top: 0; }}
+        .rendered-content h2 {{ font-size: 2rem; margin-top: 3rem; }}
+        .rendered-content h3 {{ font-size: 1.5rem; }}
+        .rendered-content h4 {{ font-size: 1.25rem; }}
+        .rendered-content h5 {{ font-size: 1.125rem; }}
+        .rendered-content h6 {{ font-size: 1rem; }}
+
+        .rendered-content p {{
+            margin: 1.25rem 0;
+            color: #404040;
+            font-size: 1.0625rem;
+        }}
+
+        .rendered-content a {{
+            color: #0066cc;
+            text-decoration: none;
+            transition: color 0.15s;
+            border-bottom: 1px solid transparent;
+        }}
+
+        .rendered-content a:hover {{
+            color: #0052a3;
+            border-bottom-color: #0052a3;
+        }}
+
+        .rendered-content code {{
+            background: #f5f5f5;
+            color: #e01e5a;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
+            font-size: 0.875em;
+        }}
+
+        .rendered-content pre {{
+            background: #f8f8f8;
+            padding: 1.5rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 2rem 0;
+            border: 1px solid #e8e8e8;
+        }}
+
+        .rendered-content pre code {{
+            background: none;
+            color: #1a1a1a;
+            padding: 0;
+            font-size: 0.9375rem;
+        }}
+
+        .rendered-content blockquote {{
+            border-left: 3px solid #e0e0e0;
+            margin: 2rem 0;
+            padding: 0.5rem 1.5rem;
+            color: #606060;
+            font-style: normal;
+        }}
+
+        .rendered-content blockquote p {{
+            color: #606060;
+        }}
+
+        .rendered-content img {{
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 2rem 0;
+        }}
+
+        .rendered-content table {{
+            width: 100%;
+            margin: 2rem 0;
+            border-collapse: collapse;
+            font-size: 0.9375rem;
+        }}
+
+        .rendered-content th, .rendered-content td {{
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e8e8e8;
+        }}
+
+        .rendered-content th {{
+            background: #fafafa;
+            font-weight: 600;
+            color: #1a1a1a;
+        }}
+
+        .rendered-content tr:last-child td {{
+            border-bottom: none;
+        }}
+
+        .rendered-content ul, .rendered-content ol {{
+            margin: 1.25rem 0;
+            padding-left: 2rem;
+            color: #404040;
+        }}
+
+        .rendered-content li {{
+            margin: 0.5rem 0;
+            line-height: 1.75;
+        }}
+
+        .rendered-content hr {{
+            border: none;
+            height: 1px;
+            background: #e8e8e8;
+            margin: 3rem 0;
+        }}
+
+        @media (max-width: 1024px) {{
+            .compare-container {{
+                flex-direction: column;
+                height: auto;
+                gap: 1.5rem;
+            }}
+
+            .compare-panel {{
+                min-height: 50vh;
+            }}
+
+            .rendered-content {{
+                padding: 2.5rem 2rem;
+            }}
+
+            .raw-content {{
+                padding: 1.5rem;
+            }}
+        }}
+
+        @media (max-width: 768px) {{
+            body {{ padding: 0.5rem; }}
+            
+            .compare-container {{
+                gap: 1rem;
+            }}
+
+            .rendered-content {{
+                padding: 2rem 1.5rem;
+            }}
+
+            .rendered-content h1 {{ font-size: 2rem; }}
+            .rendered-content h2 {{ font-size: 1.75rem; }}
+
+            .raw-content {{
+                padding: 1rem;
+                font-size: 0.8125rem;
+            }}
+
+            .panel-header {{
+                padding: 0.75rem 1rem;
+                font-size: 0.8125rem;
+            }}
+        }}
+    </style>
+    <script>
+    document.addEventListener("keydown", function(event) {{
+      if ((event.ctrlKey || event.metaKey) && event.key === "\\") {{
+        event.preventDefault();
+        window.history.back();
+      }}
+    }});
+    </script>
+</head>
+<body>
+    <div class="compare-container">
+        <div class="compare-panel">
+            <div class="panel-header">
+                <span>📄</span>
+                <span>{}</span>
+            </div>
+            <div class="panel-content">
+                <div class="rendered-content">
+                    {}
+                </div>
+            </div>
+        </div>
+        <div class="compare-panel">
+            <div class="panel-header">
+                <span>🔤</span>
+                <span>{}</span>
+            </div>
+            <div class="panel-content">
+                <div class="raw-content">{}</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"#,
+        lang_code,
+        language.text("title_compare"),
+        language.text("rendered_view"),
+        html_content,
+        language.text("raw_view"),
         escape_html(markdown_content)
     )
 }

@@ -21,11 +21,18 @@ fn test_render_page_contains_content() {
 }
 
 #[test]
+fn test_render_compare_page_escapes_html() {
+    let lang = Language::English;
+    let result = render_page("<script>alert('xss')</script>", &lang);
+    assert!(result.contains("<script>alert('xss')</script>"));
+}
+
+#[test]
 fn test_render_raw_page_escapes_html() {
     let lang = Language::English;
     let result = render_raw_page("<script>alert('xss')</script>", &lang);
-    assert!(result.contains("&lt;script&gt;"));
-    assert!(!result.contains("<script>"));
+    assert!(result.contains("&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;"));
+    assert!(!result.contains("<script>alert('xss')</script>"));
 }
 
 #[test]

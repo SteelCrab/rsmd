@@ -84,9 +84,10 @@ async fn main() {
     // Display appropriate startup message based on mode
     match state.as_ref() {
         AppState::SingleFile { .. } => {
-            println!("🚀 Markdown viewer running at http://{}", addr);
-            println!("   View rendered: http://{}/", addr);
-            println!("   View raw:      http://{}/raw", addr);
+            println!("🚀 Markdown viewer running at   http://{}", addr);
+            println!("   View rendered:               http://{}/", addr);
+            println!("   View raw:                    http://{}/raw", addr);
+            println!("   View file side by side:      http://{}/compare", addr);
         }
         AppState::Directory { files, .. } => {
             let count = files.read().await.len();

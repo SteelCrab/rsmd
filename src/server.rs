@@ -85,6 +85,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         AppState::SingleFile { .. } => Router::new()
             .route("/", get(serve_html))
             .route("/raw", get(serve_raw))
+            .route("/compare", get(serve_comparable_file))
             .nest_service("/static", ServeDir::new(base_dir))
             .with_state(state)
             .layer(TraceLayer::new_for_http()),
@@ -366,6 +367,23 @@ async fn serve_file_raw(
             }
         }
         _ => Html("<h1>Error: Invalid mode</h1>".to_string()),
+    }
+}
+
+//for serving both rendered and the raw file to the user
+async fn serve_comparable_file(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    match state.as_ref() {
+        AppState::SingleFile {
+            markdown_content,
+            html_content,
+            language,
+            ..
+        } => Html(html::render_compare_page(
+            html_content,
+            markdown_content,
+            language,
+        )),
+        _ => Html("<h1>Fuck You</h1>".to_string()),
     }
 }
 

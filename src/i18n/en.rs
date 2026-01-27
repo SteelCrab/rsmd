@@ -21,6 +21,9 @@ pub fn get_text(key: &str) -> &'static str {
         "upload_error" => "Failed to upload file.",
         "upload_invalid_type" => "Only markdown (.md) files are supported.",
         "upload_uploading" => "Uploading…",
+        "title_compare" => "Markdown Comparison",
+        "rendered_view" => "Rendered View",
+        "raw_view" => "Raw Markdown",
         _ => "",
     }
 }
